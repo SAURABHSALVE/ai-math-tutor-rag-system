@@ -22,7 +22,10 @@ def _load_knowledge_base() -> List[Document]:
             fpath = os.path.join(kb_dir, fname)
             with open(fpath, "r", encoding="utf-8") as f:
                 content = f.read()
-            documents.append(Document(page_content=content, metadata={"source": fname}))
+            # Extract topic tag from filename prefix (e.g., "calculus_integrals.md" -> "calculus")
+            name_without_ext = fname.rsplit(".", 1)[0]
+            topic = name_without_ext.split("_", 1)[0] if "_" in name_without_ext else name_without_ext
+            documents.append(Document(page_content=content, metadata={"source": fname, "topic": topic}))
     return documents
 
 

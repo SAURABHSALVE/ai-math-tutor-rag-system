@@ -428,11 +428,14 @@ Topic: {topic}
 Variables: {parsed.get('variables',[])}
 
 Return JSON:
-- "rag_queries": 2-3 search queries for the knowledge base (short, formula-focused)
+- "rag_queries": a list of exactly 3 search queries for the knowledge base:
+  1. Primary formula query — the core formula or theorem needed (e.g., "integration by parts formula")
+  2. Step-by-step technique query — the solving method or procedure (e.g., "how to solve integral using u-substitution steps")
+  3. Pitfalls and domain constraints query — common mistakes or edge cases (e.g., "common mistakes in improper integrals convergence conditions")
 - "complexity": one of ["easy","medium","hard"]""",
-        system="You are a math routing agent. Generate search queries for the knowledge base and estimate complexity.",
+        system="You are a math routing agent. Generate three targeted search queries for the knowledge base (formula, technique, pitfalls) and estimate complexity.",
         model=config.FAST_MODEL,
-        max_tokens=200,
+        max_tokens=300,
     )
 
     # Merge: deterministic strategy/tools + LLM rag_queries/complexity
@@ -562,7 +565,7 @@ _SYMPY_SAFE_NAMESPACE = {
 }
 
 
-_SYMPY_EXEC_TIMEOUT = 3  # seconds
+_SYMPY_EXEC_TIMEOUT = 10  # seconds
 
 
 def _run_sympy_in_process(code: str, result_queue: multiprocessing.Queue) -> None:
@@ -637,7 +640,21 @@ _TOPIC_SYMPY_EXAMPLES: dict[str, str] = {
   f_prime = diff(f, x)
   crit = solve(f_prime, x)
   vals = [(pt, f.subs(x, pt)) for pt in crit]
-  vals  # last line returns [(critical_point, f_value), ...]""",
+  vals  # last line returns [(critical_point, f_value), ...]
+- SUBSTITUTION (u-sub):
+  u = symbols('u')
+  # For integral of x*cos(x**2), let u = x**2, du = 2x dx
+  integrate(cos(u), u).subs(u, x**2)
+- IMPROPER INTEGRAL (to infinity):
+  integrate(exp(-x), (x, 0, oo))
+- DIFFERENTIAL EQUATIONS (dsolve):
+  from sympy import Function, dsolve
+  f = Function('f')
+  dsolve(f(x).diff(x) - f(x), f(x))
+- SERIES CONVERGENCE TEST:
+  Sum(1/n**2, (n, 1, oo)).is_convergent()
+- TAYLOR / MACLAURIN SERIES:
+  series(exp(x), x, 0, n=6)""",
 
     "probability": """PROBABILITY EXAMPLES:
 - Union: Rational(3,4) + Rational(1,2) - Rational(1,4)
@@ -650,9 +667,18 @@ _TOPIC_SYMPY_EXAMPLES: dict[str, str] = {
 - Determinant: Matrix([[1,2],[3,4]]).det()
 - Inverse: Matrix([[1,2],[3,4]]).inv()
 - Eigenvalues: Matrix([[1,2],[3,4]]).eigenvals()
+- Eigenvectors: Matrix([[1,2],[3,4]]).eigenvects()
 - Multiply: Matrix([[1,2],[3,4]]) * Matrix([[5],[6]])
 - Rank: Matrix([[1,2,3],[4,5,6]]).rank()
-- Transpose: Matrix([[1,2],[3,4]]).T""",
+- Transpose: Matrix([[1,2],[3,4]]).T
+- JACOBIAN:
+  from sympy import Matrix, symbols
+  x, y = symbols('x y')
+  F = Matrix([x**2*y, 5*x + sin(y)])
+  F.jacobian([x, y])
+- SYSTEM OF EQUATIONS (linsolve):
+  from sympy import linsolve
+  linsolve([2*x + y - 5, x - y - 1], (x, y))""",
 }
 
 
@@ -1149,6 +1175,8 @@ STRATEGY: {route.get('strategy')}
 TOPIC: {topic}
 
 IMPORTANT INSTRUCTIONS:
+- FIRST, identify the mathematical technique required (e.g., Substitution, Integration by Parts, Partial Fractions, L'Hôpital's Rule, Eigenvalue Decomposition). State it explicitly in your response.
+- THEN, plan the symbolic steps needed before interpreting the SymPy code (e.g., "Step 1: Let u = ..., Step 2: Rewrite integral in terms of u, ...").
 - The SymPy computation above is the AUTHORITATIVE answer. Do NOT solve the problem yourself.
 - Your job is to EXPLAIN the SymPy result step-by-step, NOT to compute a different answer.
 - Use the final_answer from SymPy as-is. Do NOT override it with your own calculation.
