@@ -1,0 +1,501 @@
+image,equation,answer
+math_1.jpg,"Find det([[0,2],[3,-4]])",-6
+math_2.jpg,"Find det([[-1,-1],[2,2]])",0
+math_3.jpg,"P(A)=0.6, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.81
+math_4.jpg,Find d/dx of f(x) = 5x^3 +4x^2 -3x,15x^2 +8x -3
+math_5.jpg,"P(A)=0.5, P(B)=0.4, P(A∩B)=0.16. Find P(A∪B)",0.74
+math_6.jpg,Evaluate: ∫ (2x +5) dx,1.0x^2 +5x + C
+math_7.jpg,Evaluate: ∫ (5x +2) dx,2.5x^2 +2x + C
+math_8.jpg,"P(A)=0.4, P(B)=0.3, P(A∩B)=0.12. Find P(A∪B)",0.58
+math_9.jpg,Solve for x: 1x^2 +1x -2 = 0,"x = -2, 1"
+math_10.jpg,"P(A)=0.4, P(B)=0.5, P(A∩B)=0.12. Find P(A∪B)",0.78
+math_11.jpg,"Find det([[-5,-5],[-3,3]])",-30
+math_12.jpg,Evaluate: ∫ (5x -6) dx,2.5x^2 -6x + C
+math_13.jpg,Evaluate: ∫ (1x +0) dx,0.5x^2 +0x + C
+math_14.jpg,"Find det([[-3,-3],[-3,5]])",-24
+math_15.jpg,Evaluate: ∫ (5x -5) dx,2.5x^2 -5x + C
+math_16.jpg,"P(A)=0.5, P(B)=0.4, P(A∩B)=0.16. Find P(A∪B)",0.74
+math_17.jpg,Solve for x: 1x^2 -4x +3 = 0,"x = 1, 3"
+math_18.jpg,Solve for x: 1x^2 -13x +36 = 0,"x = 4, 9"
+math_19.jpg,"P(A)=0.2, P(B)=0.5, P(A∩B)=0.06. Find P(A∪B)",0.64
+math_20.jpg,Solve for x: 1x^2 +8x +12 = 0,"x = -2, -6"
+math_21.jpg,Evaluate: ∫ (2x +4) dx,1.0x^2 +4x + C
+math_22.jpg,Find d/dx of f(x) = 2x^3 +4x^2 +2x,6x^2 +8x +2
+math_23.jpg,"P(A)=0.3, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.44
+math_24.jpg,Find d/dx of f(x) = 4x^3 +1x^2 +4x,12x^2 +2x +4
+math_25.jpg,Solve for x: 1x^2 +4x -32 = 0,"x = -8, 4"
+math_26.jpg,Solve for x: 1x^2 -10x +24 = 0,"x = 6, 4"
+math_27.jpg,"P(A)=0.4, P(B)=0.3, P(A∩B)=0.06. Find P(A∪B)",0.64
+math_28.jpg,"P(A)=0.5, P(B)=0.5, P(A∩B)=0.1. Find P(A∪B)",0.9
+math_29.jpg,"Find det([[0,-3],[2,-1]])",6
+math_30.jpg,Find d/dx of f(x) = 3x^3 -3x^2 -3x,9x^2 -6x -3
+math_31.jpg,"P(A)=0.2, P(B)=0.5, P(A∩B)=0.06. Find P(A∪B)",0.64
+math_32.jpg,Find d/dx of f(x) = 2x^3 +6x^2 -6x,6x^2 +12x -6
+math_33.jpg,Solve for x: 2x^2 -26x +80 = 0,"x = 8, 5"
+math_34.jpg,Solve for x: 1x^2 +7x +12 = 0,"x = -4, -3"
+math_35.jpg,Find d/dx of f(x) = 5x^3 -1x^2 +1x,15x^2 -2x +1
+math_36.jpg,Solve for x: 2x^2 -6x -8 = 0,"x = 4, -1"
+math_37.jpg,Find d/dx of f(x) = 3x^3 +0x^2 +2x,9x^2 +0x +2
+math_38.jpg,Evaluate: ∫ (2x +5) dx,1.0x^2 +5x + C
+math_39.jpg,"Find det([[-4,-2],[5,4]])",-6
+math_40.jpg,Find d/dx of f(x) = 4x^3 +1x^2 -2x,12x^2 +2x -2
+math_41.jpg,"P(A)=0.5, P(B)=0.3, P(A∩B)=0.12. Find P(A∪B)",0.68
+math_42.jpg,"P(A)=0.2, P(B)=0.3, P(A∩B)=0.04. Find P(A∪B)",0.46
+math_43.jpg,Solve for x: 1x^2 -8x +7 = 0,"x = 7, 1"
+math_44.jpg,Evaluate: ∫ (3x +1) dx,1.5x^2 +1x + C
+math_45.jpg,Solve for x: 1x^2 +4x -21 = 0,"x = 3, -7"
+math_46.jpg,Evaluate: ∫ (4x +1) dx,2.0x^2 +1x + C
+math_47.jpg,Solve for x: 1x^2 +9x +0 = 0,"x = 0, -9"
+math_48.jpg,"Find det([[-5,4],[2,1]])",-13
+math_49.jpg,Evaluate: ∫ (5x +0) dx,2.5x^2 +0x + C
+math_50.jpg,"P(A)=0.4, P(B)=0.4, P(A∩B)=0.08. Find P(A∪B)",0.72
+math_51.jpg,"P(A)=0.6, P(B)=0.5, P(A∩B)=0.2. Find P(A∪B)",0.9
+math_52.jpg,Find d/dx of f(x) = 1x^3 +0x^2 -6x,3x^2 +0x -6
+math_53.jpg,Find d/dx of f(x) = 3x^3 -6x^2 -2x,9x^2 -12x -2
+math_54.jpg,Evaluate: ∫ (5x +3) dx,2.5x^2 +3x + C
+math_55.jpg,Solve for x: 1x^2 -11x +28 = 0,"x = 7, 4"
+math_56.jpg,Solve for x: 1x^2 +0x -64 = 0,"x = -8, 8"
+math_57.jpg,"P(A)=0.5, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.71
+math_58.jpg,"Find det([[-3,5],[-3,-4]])",27
+math_59.jpg,Find d/dx of f(x) = 2x^3 -3x^2 +2x,6x^2 -6x +2
+math_60.jpg,Evaluate: ∫ (4x -2) dx,2.0x^2 -2x + C
+math_61.jpg,Find d/dx of f(x) = 1x^3 -4x^2 +2x,3x^2 -8x +2
+math_62.jpg,Solve for x: 1x^2 +6x +8 = 0,"x = -4, -2"
+math_63.jpg,Find d/dx of f(x) = 3x^3 +2x^2 -1x,9x^2 +4x -1
+math_64.jpg,Find d/dx of f(x) = 5x^3 -1x^2 +0x,15x^2 -2x +0
+math_65.jpg,Find d/dx of f(x) = 3x^3 +0x^2 +4x,9x^2 +0x +4
+math_66.jpg,Find d/dx of f(x) = 2x^3 -3x^2 -3x,6x^2 -6x -3
+math_67.jpg,Find d/dx of f(x) = 3x^3 -6x^2 -5x,9x^2 -12x -5
+math_68.jpg,"P(A)=0.6, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.74
+math_69.jpg,Solve for x: 2x^2 +0x -98 = 0,"x = 7, -7"
+math_70.jpg,Find d/dx of f(x) = 3x^3 -5x^2 -4x,9x^2 -10x -4
+math_71.jpg,Solve for x: 2x^2 +10x +12 = 0,"x = -2, -3"
+math_72.jpg,Find d/dx of f(x) = 2x^3 +0x^2 -1x,6x^2 +0x -1
+math_73.jpg,"P(A)=0.2, P(B)=0.4, P(A∩B)=0.06. Find P(A∪B)",0.54
+math_74.jpg,Solve for x: 1x^2 +2x -15 = 0,"x = 3, -5"
+math_75.jpg,Solve for x: 2x^2 +2x +0 = 0,"x = 0, -1"
+math_76.jpg,"Find det([[0,5],[-4,3]])",20
+math_77.jpg,"P(A)=0.5, P(B)=0.2, P(A∩B)=0.04. Find P(A∪B)",0.66
+math_78.jpg,Evaluate: ∫ (4x -4) dx,2.0x^2 -4x + C
+math_79.jpg,Solve for x: 1x^2 +1x -56 = 0,"x = -8, 7"
+math_80.jpg,"Find det([[4,-3],[0,0]])",0
+math_81.jpg,Evaluate: ∫ (1x -6) dx,0.5x^2 -6x + C
+math_82.jpg,"P(A)=0.4, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.54
+math_83.jpg,"Find det([[5,-3],[2,-5]])",-19
+math_84.jpg,Find d/dx of f(x) = 4x^3 -4x^2 -2x,12x^2 -8x -2
+math_85.jpg,Solve for x: 1x^2 +0x -25 = 0,"x = -5, 5"
+math_86.jpg,Find d/dx of f(x) = 1x^3 +3x^2 -5x,3x^2 +6x -5
+math_87.jpg,"P(A)=0.6, P(B)=0.5, P(A∩B)=0.15. Find P(A∪B)",0.95
+math_88.jpg,Find d/dx of f(x) = 3x^3 +5x^2 -2x,9x^2 +10x -2
+math_89.jpg,"Find det([[4,-1],[2,1]])",6
+math_90.jpg,Solve for x: 2x^2 +0x -50 = 0,"x = 5, -5"
+math_91.jpg,Find d/dx of f(x) = 1x^3 -6x^2 +2x,3x^2 -12x +2
+math_92.jpg,"P(A)=0.4, P(B)=0.4, P(A∩B)=0.08. Find P(A∪B)",0.72
+math_93.jpg,Solve for x: 1x^2 -10x +21 = 0,"x = 7, 3"
+math_94.jpg,"P(A)=0.5, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.71
+math_95.jpg,Evaluate: ∫ (5x +5) dx,2.5x^2 +5x + C
+math_96.jpg,Find d/dx of f(x) = 2x^3 -1x^2 +4x,6x^2 -2x +4
+math_97.jpg,Find d/dx of f(x) = 5x^3 +4x^2 -1x,15x^2 +8x -1
+math_98.jpg,Find d/dx of f(x) = 2x^3 -3x^2 -1x,6x^2 -6x -1
+math_99.jpg,"Find det([[-5,5],[5,4]])",-45
+math_100.jpg,Evaluate: ∫ (4x -2) dx,2.0x^2 -2x + C
+math_101.jpg,Solve for x: 1x^2 +3x -40 = 0,"x = -8, 5"
+math_102.jpg,Evaluate: ∫ (4x -3) dx,2.0x^2 -3x + C
+math_103.jpg,"P(A)=0.6, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.74
+math_104.jpg,"Find det([[-1,0],[2,4]])",-4
+math_105.jpg,Solve for x: 1x^2 -9x +0 = 0,"x = 9, 0"
+math_106.jpg,Evaluate: ∫ (5x +1) dx,2.5x^2 +1x + C
+math_107.jpg,"Find det([[1,-3],[-2,3]])",-3
+math_108.jpg,Find d/dx of f(x) = 2x^3 +2x^2 -4x,6x^2 +4x -4
+math_109.jpg,Find d/dx of f(x) = 3x^3 -1x^2 +4x,9x^2 -2x +4
+math_110.jpg,Solve for x: 1x^2 +2x -8 = 0,"x = 2, -4"
+math_111.jpg,"P(A)=0.3, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.51
+math_112.jpg,Solve for x: 1x^2 +0x -64 = 0,"x = -8, 8"
+math_113.jpg,Solve for x: 2x^2 -14x -16 = 0,"x = 8, -1"
+math_114.jpg,Solve for x: 1x^2 -3x -40 = 0,"x = 8, -5"
+math_115.jpg,Evaluate: ∫ (4x -5) dx,2.0x^2 -5x + C
+math_116.jpg,"P(A)=0.4, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.61
+math_117.jpg,"Find det([[0,1],[4,4]])",-4
+math_118.jpg,Evaluate: ∫ (2x +4) dx,1.0x^2 +4x + C
+math_119.jpg,"Find det([[5,0],[-2,-2]])",-10
+math_120.jpg,Find d/dx of f(x) = 1x^3 -6x^2 +3x,3x^2 -12x +3
+math_121.jpg,Find d/dx of f(x) = 3x^3 -3x^2 -4x,9x^2 -6x -4
+math_122.jpg,Evaluate: ∫ (3x +6) dx,1.5x^2 +6x + C
+math_123.jpg,"Find det([[-5,-2],[-3,-5]])",19
+math_124.jpg,Evaluate: ∫ (2x +3) dx,1.0x^2 +3x + C
+math_125.jpg,Solve for x: 1x^2 -7x +12 = 0,"x = 3, 4"
+math_126.jpg,Evaluate: ∫ (3x -6) dx,1.5x^2 -6x + C
+math_127.jpg,Find d/dx of f(x) = 4x^3 +5x^2 -2x,12x^2 +10x -2
+math_128.jpg,Solve for x: 1x^2 -5x -14 = 0,"x = -2, 7"
+math_129.jpg,Find d/dx of f(x) = 5x^3 +2x^2 -3x,15x^2 +4x -3
+math_130.jpg,"P(A)=0.3, P(B)=0.5, P(A∩B)=0.12. Find P(A∪B)",0.68
+math_131.jpg,Find d/dx of f(x) = 3x^3 -2x^2 -2x,9x^2 -4x -2
+math_132.jpg,"P(A)=0.3, P(B)=0.4, P(A∩B)=0.12. Find P(A∪B)",0.58
+math_133.jpg,Solve for x: 1x^2 -5x +4 = 0,"x = 1, 4"
+math_134.jpg,Solve for x: 2x^2 +6x -56 = 0,"x = 4, -7"
+math_135.jpg,"Find det([[3,1],[-2,5]])",17
+math_136.jpg,Evaluate: ∫ (2x -3) dx,1.0x^2 -3x + C
+math_137.jpg,"P(A)=0.5, P(B)=0.4, P(A∩B)=0.16. Find P(A∪B)",0.74
+math_138.jpg,"P(A)=0.5, P(B)=0.2, P(A∩B)=0.04. Find P(A∪B)",0.66
+math_139.jpg,Find d/dx of f(x) = 1x^3 -3x^2 +1x,3x^2 -6x +1
+math_140.jpg,Solve for x: 1x^2 -4x -5 = 0,"x = -1, 5"
+math_141.jpg,Solve for x: 1x^2 +0x -1 = 0,"x = 1, -1"
+math_142.jpg,Solve for x: 1x^2 +2x +0 = 0,"x = 0, -2"
+math_143.jpg,Evaluate: ∫ (1x +5) dx,0.5x^2 +5x + C
+math_144.jpg,Solve for x: 1x^2 -1x -56 = 0,"x = -7, 8"
+math_145.jpg,Find d/dx of f(x) = 2x^3 -3x^2 +4x,6x^2 -6x +4
+math_146.jpg,Find d/dx of f(x) = 1x^3 +5x^2 -3x,3x^2 +10x -3
+math_147.jpg,Solve for x: 1x^2 +11x +24 = 0,"x = -8, -3"
+math_148.jpg,Solve for x: 1x^2 -1x -6 = 0,"x = 3, -2"
+math_149.jpg,Evaluate: ∫ (3x -3) dx,1.5x^2 -3x + C
+math_150.jpg,Solve for x: 1x^2 -4x -12 = 0,"x = -2, 6"
+math_151.jpg,Solve for x: 1x^2 +12x +27 = 0,"x = -3, -9"
+math_152.jpg,"P(A)=0.6, P(B)=0.2, P(A∩B)=0.04. Find P(A∪B)",0.76
+math_153.jpg,"P(A)=0.6, P(B)=0.2, P(A∩B)=0.08. Find P(A∪B)",0.72
+math_154.jpg,"P(A)=0.4, P(B)=0.4, P(A∩B)=0.12. Find P(A∪B)",0.68
+math_155.jpg,Evaluate: ∫ (4x +1) dx,2.0x^2 +1x + C
+math_156.jpg,Find d/dx of f(x) = 2x^3 +6x^2 +3x,6x^2 +12x +3
+math_157.jpg,Solve for x: 1x^2 +8x -9 = 0,"x = -9, 1"
+math_158.jpg,Solve for x: 1x^2 -9x +14 = 0,"x = 2, 7"
+math_159.jpg,"P(A)=0.2, P(B)=0.4, P(A∩B)=0.04. Find P(A∪B)",0.56
+math_160.jpg,Evaluate: ∫ (2x +4) dx,1.0x^2 +4x + C
+math_161.jpg,Find d/dx of f(x) = 1x^3 +0x^2 -6x,3x^2 +0x -6
+math_162.jpg,Solve for x: 1x^2 +7x -8 = 0,"x = -8, 1"
+math_163.jpg,"P(A)=0.5, P(B)=0.2, P(A∩B)=0.04. Find P(A∪B)",0.66
+math_164.jpg,Find d/dx of f(x) = 1x^3 +1x^2 -5x,3x^2 +2x -5
+math_165.jpg,Evaluate: ∫ (4x -1) dx,2.0x^2 -1x + C
+math_166.jpg,Solve for x: 1x^2 +12x +27 = 0,"x = -3, -9"
+math_167.jpg,Evaluate: ∫ (2x -1) dx,1.0x^2 -1x + C
+math_168.jpg,Find d/dx of f(x) = 1x^3 +1x^2 -2x,3x^2 +2x -2
+math_169.jpg,"P(A)=0.3, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.44
+math_170.jpg,"P(A)=0.6, P(B)=0.3, P(A∩B)=0.12. Find P(A∪B)",0.78
+math_171.jpg,"P(A)=0.3, P(B)=0.5, P(A∩B)=0.12. Find P(A∪B)",0.68
+math_172.jpg,Evaluate: ∫ (1x -3) dx,0.5x^2 -3x + C
+math_173.jpg,"P(A)=0.4, P(B)=0.3, P(A∩B)=0.12. Find P(A∪B)",0.58
+math_174.jpg,"P(A)=0.5, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.71
+math_175.jpg,Evaluate: ∫ (4x -2) dx,2.0x^2 -2x + C
+math_176.jpg,Find d/dx of f(x) = 1x^3 +0x^2 -3x,3x^2 +0x -3
+math_177.jpg,"Find det([[5,3],[-1,5]])",28
+math_178.jpg,"Find det([[0,-2],[-5,0]])",-10
+math_179.jpg,Solve for x: 1x^2 -14x +48 = 0,"x = 8, 6"
+math_180.jpg,"Find det([[-1,-2],[-3,-3]])",-3
+math_181.jpg,Solve for x: 1x^2 -1x -56 = 0,"x = 8, -7"
+math_182.jpg,"P(A)=0.2, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.34
+math_183.jpg,Evaluate: ∫ (2x +2) dx,1.0x^2 +2x + C
+math_184.jpg,Find d/dx of f(x) = 2x^3 +4x^2 +6x,6x^2 +8x +6
+math_185.jpg,"P(A)=0.4, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.61
+math_186.jpg,"P(A)=0.6, P(B)=0.5, P(A∩B)=0.15. Find P(A∪B)",0.95
+math_187.jpg,Evaluate: ∫ (1x -1) dx,0.5x^2 -1x + C
+math_188.jpg,Find d/dx of f(x) = 3x^3 +6x^2 -2x,9x^2 +12x -2
+math_189.jpg,Evaluate: ∫ (3x +5) dx,1.5x^2 +5x + C
+math_190.jpg,Solve for x: 1x^2 +0x +0 = 0,"x = 0, 0"
+math_191.jpg,"P(A)=0.2, P(B)=0.3, P(A∩B)=0.04. Find P(A∪B)",0.46
+math_192.jpg,Find d/dx of f(x) = 4x^3 -2x^2 -5x,12x^2 -4x -5
+math_193.jpg,"P(A)=0.6, P(B)=0.4, P(A∩B)=0.08. Find P(A∪B)",0.92
+math_194.jpg,Find d/dx of f(x) = 3x^3 +0x^2 +2x,9x^2 +0x +2
+math_195.jpg,Find d/dx of f(x) = 1x^3 -5x^2 -3x,3x^2 -10x -3
+math_196.jpg,Solve for x: 2x^2 -2x -12 = 0,"x = -2, 3"
+math_197.jpg,"P(A)=0.5, P(B)=0.3, P(A∩B)=0.06. Find P(A∪B)",0.74
+math_198.jpg,Solve for x: 1x^2 +4x -5 = 0,"x = -5, 1"
+math_199.jpg,"P(A)=0.3, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.51
+math_200.jpg,Solve for x: 1x^2 +0x -81 = 0,"x = -9, 9"
+math_201.jpg,"Find det([[-5,5],[-2,2]])",0
+math_202.jpg,Evaluate: ∫ (1x -2) dx,0.5x^2 -2x + C
+math_203.jpg,"Find det([[1,0],[1,-1]])",-1
+math_204.jpg,"P(A)=0.6, P(B)=0.2, P(A∩B)=0.08. Find P(A∪B)",0.72
+math_205.jpg,"P(A)=0.6, P(B)=0.5, P(A∩B)=0.2. Find P(A∪B)",0.9
+math_206.jpg,Evaluate: ∫ (2x +3) dx,1.0x^2 +3x + C
+math_207.jpg,Find d/dx of f(x) = 2x^3 -6x^2 +0x,6x^2 -12x +0
+math_208.jpg,"P(A)=0.4, P(B)=0.4, P(A∩B)=0.08. Find P(A∪B)",0.72
+math_209.jpg,Evaluate: ∫ (5x -5) dx,2.5x^2 -5x + C
+math_210.jpg,Evaluate: ∫ (4x -4) dx,2.0x^2 -4x + C
+math_211.jpg,Evaluate: ∫ (3x +3) dx,1.5x^2 +3x + C
+math_212.jpg,"P(A)=0.5, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.71
+math_213.jpg,"Find det([[-5,2],[0,1]])",-5
+math_214.jpg,Solve for x: 2x^2 -12x +10 = 0,"x = 1, 5"
+math_215.jpg,"P(A)=0.3, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.44
+math_216.jpg,"P(A)=0.2, P(B)=0.3, P(A∩B)=0.04. Find P(A∪B)",0.46
+math_217.jpg,Solve for x: 1x^2 +3x -10 = 0,"x = 2, -5"
+math_218.jpg,Solve for x: 2x^2 +6x -8 = 0,"x = -4, 1"
+math_219.jpg,Solve for x: 1x^2 +8x +0 = 0,"x = -8, 0"
+math_220.jpg,"Find det([[-2,0],[5,5]])",-10
+math_221.jpg,Evaluate: ∫ (1x -1) dx,0.5x^2 -1x + C
+math_222.jpg,Solve for x: 1x^2 +5x -24 = 0,"x = -8, 3"
+math_223.jpg,"P(A)=0.3, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.44
+math_224.jpg,Evaluate: ∫ (3x +4) dx,1.5x^2 +4x + C
+math_225.jpg,Solve for x: 1x^2 +6x +5 = 0,"x = -1, -5"
+math_226.jpg,Evaluate: ∫ (4x +3) dx,2.0x^2 +3x + C
+math_227.jpg,"Find det([[-1,-1],[-2,1]])",-3
+math_228.jpg,Find d/dx of f(x) = 3x^3 +5x^2 +3x,9x^2 +10x +3
+math_229.jpg,Solve for x: 1x^2 +12x +32 = 0,"x = -8, -4"
+math_230.jpg,Solve for x: 1x^2 -2x +0 = 0,"x = 2, 0"
+math_231.jpg,Solve for x: 1x^2 +2x -3 = 0,"x = 1, -3"
+math_232.jpg,Solve for x: 2x^2 +10x +0 = 0,"x = -5, 0"
+math_233.jpg,Evaluate: ∫ (3x -4) dx,1.5x^2 -4x + C
+math_234.jpg,Evaluate: ∫ (2x -6) dx,1.0x^2 -6x + C
+math_235.jpg,"Find det([[-4,-2],[2,-4]])",20
+math_236.jpg,Solve for x: 1x^2 -5x +0 = 0,"x = 0, 5"
+math_237.jpg,Evaluate: ∫ (3x -5) dx,1.5x^2 -5x + C
+math_238.jpg,Find d/dx of f(x) = 2x^3 -3x^2 +1x,6x^2 -6x +1
+math_239.jpg,"P(A)=0.2, P(B)=0.4, P(A∩B)=0.06. Find P(A∪B)",0.54
+math_240.jpg,Evaluate: ∫ (4x +5) dx,2.0x^2 +5x + C
+math_241.jpg,Evaluate: ∫ (5x +6) dx,2.5x^2 +6x + C
+math_242.jpg,"Find det([[5,0],[-4,4]])",20
+math_243.jpg,Find d/dx of f(x) = 1x^3 +3x^2 -2x,3x^2 +6x -2
+math_244.jpg,"Find det([[5,3],[-2,2]])",16
+math_245.jpg,Find d/dx of f(x) = 2x^3 +3x^2 -1x,6x^2 +6x -1
+math_246.jpg,Evaluate: ∫ (4x -3) dx,2.0x^2 -3x + C
+math_247.jpg,Solve for x: 1x^2 -4x -12 = 0,"x = 6, -2"
+math_248.jpg,Solve for x: 1x^2 -13x +36 = 0,"x = 9, 4"
+math_249.jpg,"P(A)=0.5, P(B)=0.4, P(A∩B)=0.12. Find P(A∪B)",0.78
+math_250.jpg,Find d/dx of f(x) = 4x^3 -6x^2 +6x,12x^2 -12x +6
+math_251.jpg,Find d/dx of f(x) = 5x^3 +6x^2 +3x,15x^2 +12x +3
+math_252.jpg,Find d/dx of f(x) = 4x^3 +6x^2 +6x,12x^2 +12x +6
+math_253.jpg,"Find det([[-2,-2],[-2,1]])",-6
+math_254.jpg,"P(A)=0.5, P(B)=0.5, P(A∩B)=0.2. Find P(A∪B)",0.8
+math_255.jpg,Evaluate: ∫ (4x -5) dx,2.0x^2 -5x + C
+math_256.jpg,"Find det([[1,1],[4,1]])",-3
+math_257.jpg,Find d/dx of f(x) = 1x^3 -3x^2 +1x,3x^2 -6x +1
+math_258.jpg,Evaluate: ∫ (3x -4) dx,1.5x^2 -4x + C
+math_259.jpg,Find d/dx of f(x) = 3x^3 -1x^2 +0x,9x^2 -2x +0
+math_260.jpg,Evaluate: ∫ (2x +5) dx,1.0x^2 +5x + C
+math_261.jpg,Solve for x: 1x^2 -3x +2 = 0,"x = 2, 1"
+math_262.jpg,Find d/dx of f(x) = 1x^3 -3x^2 +6x,3x^2 -6x +6
+math_263.jpg,Find d/dx of f(x) = 4x^3 -5x^2 +2x,12x^2 -10x +2
+math_264.jpg,"P(A)=0.5, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.64
+math_265.jpg,"Find det([[-2,5],[-4,-1]])",22
+math_266.jpg,Evaluate: ∫ (4x +6) dx,2.0x^2 +6x + C
+math_267.jpg,"Find det([[-1,3],[-1,1]])",2
+math_268.jpg,Find d/dx of f(x) = 1x^3 +6x^2 -6x,3x^2 +12x -6
+math_269.jpg,Evaluate: ∫ (1x -4) dx,0.5x^2 -4x + C
+math_270.jpg,Solve for x: 1x^2 +2x -35 = 0,"x = -7, 5"
+math_271.jpg,Find d/dx of f(x) = 4x^3 +3x^2 +2x,12x^2 +6x +2
+math_272.jpg,"P(A)=0.4, P(B)=0.5, P(A∩B)=0.16. Find P(A∪B)",0.74
+math_273.jpg,Solve for x: 1x^2 +5x +6 = 0,"x = -3, -2"
+math_274.jpg,Find d/dx of f(x) = 3x^3 -2x^2 +6x,9x^2 -4x +6
+math_275.jpg,Find d/dx of f(x) = 3x^3 -4x^2 -1x,9x^2 -8x -1
+math_276.jpg,"P(A)=0.5, P(B)=0.4, P(A∩B)=0.08. Find P(A∪B)",0.82
+math_277.jpg,Evaluate: ∫ (1x -4) dx,0.5x^2 -4x + C
+math_278.jpg,Solve for x: 1x^2 +14x +48 = 0,"x = -8, -6"
+math_279.jpg,Solve for x: 1x^2 +6x +8 = 0,"x = -2, -4"
+math_280.jpg,"Find det([[-4,4],[5,-1]])",-16
+math_281.jpg,"Find det([[-1,2],[5,-1]])",-9
+math_282.jpg,Find d/dx of f(x) = 5x^3 +0x^2 +4x,15x^2 +0x +4
+math_283.jpg,"Find det([[-1,5],[3,2]])",-17
+math_284.jpg,"P(A)=0.5, P(B)=0.4, P(A∩B)=0.08. Find P(A∪B)",0.82
+math_285.jpg,Solve for x: 1x^2 -10x +16 = 0,"x = 8, 2"
+math_286.jpg,"Find det([[2,4],[-4,5]])",26
+math_287.jpg,Find d/dx of f(x) = 1x^3 +6x^2 -6x,3x^2 +12x -6
+math_288.jpg,"P(A)=0.2, P(B)=0.5, P(A∩B)=0.04. Find P(A∪B)",0.66
+math_289.jpg,"Find det([[-3,-4],[-2,2]])",-14
+math_290.jpg,Evaluate: ∫ (3x +3) dx,1.5x^2 +3x + C
+math_291.jpg,"Find det([[1,-3],[2,1]])",7
+math_292.jpg,"Find det([[4,-2],[5,0]])",10
+math_293.jpg,Evaluate: ∫ (4x +1) dx,2.0x^2 +1x + C
+math_294.jpg,"P(A)=0.3, P(B)=0.4, P(A∩B)=0.09. Find P(A∪B)",0.61
+math_295.jpg,Evaluate: ∫ (3x -1) dx,1.5x^2 -1x + C
+math_296.jpg,Find d/dx of f(x) = 5x^3 +3x^2 -1x,15x^2 +6x -1
+math_297.jpg,"Find det([[5,-1],[0,-4]])",-20
+math_298.jpg,"P(A)=0.4, P(B)=0.5, P(A∩B)=0.12. Find P(A∪B)",0.78
+math_299.jpg,Evaluate: ∫ (5x +2) dx,2.5x^2 +2x + C
+math_300.jpg,"Find det([[1,-4],[1,5]])",9
+math_301.jpg,Solve for x: 1x^2 +8x +15 = 0,"x = -3, -5"
+math_302.jpg,Find d/dx of f(x) = 1x^3 -2x^2 +1x,3x^2 -4x +1
+math_303.jpg,"P(A)=0.2, P(B)=0.2, P(A∩B)=0.04. Find P(A∪B)",0.36
+math_304.jpg,"Find det([[1,-2],[5,4]])",14
+math_305.jpg,Find d/dx of f(x) = 1x^3 +0x^2 -4x,3x^2 +0x -4
+math_306.jpg,Evaluate: ∫ (4x +3) dx,2.0x^2 +3x + C
+math_307.jpg,Evaluate: ∫ (3x +5) dx,1.5x^2 +5x + C
+math_308.jpg,"Find det([[2,1],[5,1]])",-3
+math_309.jpg,Evaluate: ∫ (1x +3) dx,0.5x^2 +3x + C
+math_310.jpg,"P(A)=0.5, P(B)=0.2, P(A∩B)=0.08. Find P(A∪B)",0.62
+math_311.jpg,Solve for x: 1x^2 +1x -6 = 0,"x = 2, -3"
+math_312.jpg,Find d/dx of f(x) = 2x^3 +3x^2 +1x,6x^2 +6x +1
+math_313.jpg,Find d/dx of f(x) = 3x^3 -5x^2 -3x,9x^2 -10x -3
+math_314.jpg,Solve for x: 1x^2 +1x -30 = 0,"x = 5, -6"
+math_315.jpg,Find d/dx of f(x) = 3x^3 -1x^2 -4x,9x^2 -2x -4
+math_316.jpg,Find d/dx of f(x) = 2x^3 +5x^2 -2x,6x^2 +10x -2
+math_317.jpg,"Find det([[4,-4],[-1,5]])",16
+math_318.jpg,Find d/dx of f(x) = 5x^3 +0x^2 -5x,15x^2 +0x -5
+math_319.jpg,Find d/dx of f(x) = 1x^3 +6x^2 -4x,3x^2 +12x -4
+math_320.jpg,Evaluate: ∫ (1x +0) dx,0.5x^2 +0x + C
+math_321.jpg,Solve for x: 2x^2 -6x -8 = 0,"x = -1, 4"
+math_322.jpg,"Find det([[-4,3],[4,3]])",-24
+math_323.jpg,"P(A)=0.2, P(B)=0.5, P(A∩B)=0.04. Find P(A∪B)",0.66
+math_324.jpg,Solve for x: 2x^2 +8x -64 = 0,"x = -8, 4"
+math_325.jpg,Find d/dx of f(x) = 2x^3 +3x^2 -6x,6x^2 +6x -6
+math_326.jpg,Solve for x: 2x^2 +32x +126 = 0,"x = -9, -7"
+math_327.jpg,Solve for x: 1x^2 +3x -4 = 0,"x = -4, 1"
+math_328.jpg,Solve for x: 1x^2 +1x +0 = 0,"x = -1, 0"
+math_329.jpg,"Find det([[-4,2],[-3,4]])",-10
+math_330.jpg,Solve for x: 1x^2 +9x +14 = 0,"x = -7, -2"
+math_331.jpg,"P(A)=0.3, P(B)=0.5, P(A∩B)=0.09. Find P(A∪B)",0.71
+math_332.jpg,"Find det([[3,0],[3,-2]])",-6
+math_333.jpg,"Find det([[-4,-2],[-1,0]])",-2
+math_334.jpg,"P(A)=0.4, P(B)=0.4, P(A∩B)=0.08. Find P(A∪B)",0.72
+math_335.jpg,Solve for x: 1x^2 +11x +30 = 0,"x = -6, -5"
+math_336.jpg,"P(A)=0.5, P(B)=0.5, P(A∩B)=0.1. Find P(A∪B)",0.9
+math_337.jpg,Evaluate: ∫ (2x +1) dx,1.0x^2 +1x + C
+math_338.jpg,Solve for x: 1x^2 -11x +28 = 0,"x = 4, 7"
+math_339.jpg,Solve for x: 1x^2 +11x +28 = 0,"x = -7, -4"
+math_340.jpg,Solve for x: 1x^2 +3x +0 = 0,"x = -3, 0"
+math_341.jpg,"P(A)=0.5, P(B)=0.4, P(A∩B)=0.16. Find P(A∪B)",0.74
+math_342.jpg,"P(A)=0.2, P(B)=0.5, P(A∩B)=0.04. Find P(A∪B)",0.66
+math_343.jpg,Evaluate: ∫ (4x -4) dx,2.0x^2 -4x + C
+math_344.jpg,Evaluate: ∫ (2x -1) dx,1.0x^2 -1x + C
+math_345.jpg,Solve for x: 2x^2 -2x +0 = 0,"x = 1, 0"
+math_346.jpg,Solve for x: 2x^2 +0x -32 = 0,"x = 4, -4"
+math_347.jpg,"Find det([[-5,-2],[2,5]])",-21
+math_348.jpg,Solve for x: 1x^2 -8x +7 = 0,"x = 7, 1"
+math_349.jpg,Find d/dx of f(x) = 5x^3 +4x^2 -5x,15x^2 +8x -5
+math_350.jpg,Evaluate: ∫ (1x +5) dx,0.5x^2 +5x + C
+math_351.jpg,"P(A)=0.3, P(B)=0.3, P(A∩B)=0.06. Find P(A∪B)",0.54
+math_352.jpg,Find d/dx of f(x) = 2x^3 -3x^2 -4x,6x^2 -6x -4
+math_353.jpg,"Find det([[-2,2],[4,5]])",-18
+math_354.jpg,Solve for x: 2x^2 +18x +40 = 0,"x = -5, -4"
+math_355.jpg,Solve for x: 1x^2 +8x +0 = 0,"x = 0, -8"
+math_356.jpg,Find d/dx of f(x) = 2x^3 +5x^2 +5x,6x^2 +10x +5
+math_357.jpg,Find d/dx of f(x) = 4x^3 +6x^2 -3x,12x^2 +12x -3
+math_358.jpg,Evaluate: ∫ (4x -5) dx,2.0x^2 -5x + C
+math_359.jpg,"P(A)=0.2, P(B)=0.3, P(A∩B)=0.08. Find P(A∪B)",0.42
+math_360.jpg,"Find det([[4,-1],[-1,4]])",15
+math_361.jpg,Solve for x: 2x^2 +20x +32 = 0,"x = -8, -2"
+math_362.jpg,Evaluate: ∫ (2x +2) dx,1.0x^2 +2x + C
+math_363.jpg,Find d/dx of f(x) = 3x^3 +2x^2 +0x,9x^2 +4x +0
+math_364.jpg,"P(A)=0.3, P(B)=0.3, P(A∩B)=0.06. Find P(A∪B)",0.54
+math_365.jpg,Evaluate: ∫ (5x -4) dx,2.5x^2 -4x + C
+math_366.jpg,Find d/dx of f(x) = 5x^3 -4x^2 -2x,15x^2 -8x -2
+math_367.jpg,Solve for x: 1x^2 -5x +4 = 0,"x = 1, 4"
+math_368.jpg,Find d/dx of f(x) = 1x^3 +4x^2 -5x,3x^2 +8x -5
+math_369.jpg,"Find det([[3,-2],[5,-1]])",7
+math_370.jpg,"P(A)=0.6, P(B)=0.3, P(A∩B)=0.12. Find P(A∪B)",0.78
+math_371.jpg,Find d/dx of f(x) = 4x^3 +4x^2 -6x,12x^2 +8x -6
+math_372.jpg,"Find det([[-3,2],[1,3]])",-11
+math_373.jpg,"P(A)=0.3, P(B)=0.4, P(A∩B)=0.09. Find P(A∪B)",0.61
+math_374.jpg,Solve for x: 2x^2 +32x +126 = 0,"x = -9, -7"
+math_375.jpg,"Find det([[-5,4],[3,2]])",-22
+math_376.jpg,Solve for x: 1x^2 -10x +25 = 0,"x = 5, 5"
+math_377.jpg,"Find det([[4,-5],[2,3]])",22
+math_378.jpg,"P(A)=0.4, P(B)=0.5, P(A∩B)=0.16. Find P(A∪B)",0.74
+math_379.jpg,Solve for x: 1x^2 -16x +63 = 0,"x = 7, 9"
+math_380.jpg,Evaluate: ∫ (4x -1) dx,2.0x^2 -1x + C
+math_381.jpg,Solve for x: 1x^2 -1x -20 = 0,"x = -4, 5"
+math_382.jpg,"Find det([[0,2],[3,5]])",-6
+math_383.jpg,"Find det([[-1,-4],[2,4]])",4
+math_384.jpg,"P(A)=0.5, P(B)=0.2, P(A∩B)=0.08. Find P(A∪B)",0.62
+math_385.jpg,Find d/dx of f(x) = 4x^3 +6x^2 -3x,12x^2 +12x -3
+math_386.jpg,Find d/dx of f(x) = 3x^3 +2x^2 -5x,9x^2 +4x -5
+math_387.jpg,"Find det([[-3,3],[-1,1]])",0
+math_388.jpg,"P(A)=0.4, P(B)=0.3, P(A∩B)=0.09. Find P(A∪B)",0.61
+math_389.jpg,Solve for x: 1x^2 -2x -24 = 0,"x = -4, 6"
+math_390.jpg,Evaluate: ∫ (3x -2) dx,1.5x^2 -2x + C
+math_391.jpg,Solve for x: 1x^2 +11x +28 = 0,"x = -7, -4"
+math_392.jpg,"Find det([[2,2],[5,-4]])",-18
+math_393.jpg,Evaluate: ∫ (4x +3) dx,2.0x^2 +3x + C
+math_394.jpg,Evaluate: ∫ (4x -2) dx,2.0x^2 -2x + C
+math_395.jpg,"P(A)=0.2, P(B)=0.3, P(A∩B)=0.04. Find P(A∪B)",0.46
+math_396.jpg,Evaluate: ∫ (3x +5) dx,1.5x^2 +5x + C
+math_397.jpg,"Find det([[2,3],[-4,0]])",12
+math_398.jpg,"P(A)=0.6, P(B)=0.4, P(A∩B)=0.12. Find P(A∪B)",0.88
+math_399.jpg,"Find det([[4,-5],[5,3]])",37
+math_400.jpg,Solve for x: 1x^2 +18x +81 = 0,"x = -9, -9"
+math_401.jpg,Solve for x: 1x^2 +4x -21 = 0,"x = -7, 3"
+math_402.jpg,Evaluate: ∫ (5x +2) dx,2.5x^2 +2x + C
+math_403.jpg,Evaluate: ∫ (2x -3) dx,1.0x^2 -3x + C
+math_404.jpg,"P(A)=0.4, P(B)=0.2, P(A∩B)=0.08. Find P(A∪B)",0.52
+math_405.jpg,"Find det([[1,1],[3,4]])",1
+math_406.jpg,Solve for x: 1x^2 +8x +15 = 0,"x = -5, -3"
+math_407.jpg,Find d/dx of f(x) = 4x^3 +2x^2 +0x,12x^2 +4x +0
+math_408.jpg,Evaluate: ∫ (5x +3) dx,2.5x^2 +3x + C
+math_409.jpg,Solve for x: 1x^2 -6x +0 = 0,"x = 0, 6"
+math_410.jpg,Evaluate: ∫ (4x -1) dx,2.0x^2 -1x + C
+math_411.jpg,"Find det([[1,0],[3,-1]])",-1
+math_412.jpg,Find d/dx of f(x) = 5x^3 +1x^2 -5x,15x^2 +2x -5
+math_413.jpg,Find d/dx of f(x) = 3x^3 +5x^2 -6x,9x^2 +10x -6
+math_414.jpg,Solve for x: 1x^2 +15x +54 = 0,"x = -6, -9"
+math_415.jpg,Solve for x: 2x^2 +14x -16 = 0,"x = 1, -8"
+math_416.jpg,Evaluate: ∫ (2x -1) dx,1.0x^2 -1x + C
+math_417.jpg,Find d/dx of f(x) = 5x^3 +1x^2 +3x,15x^2 +2x +3
+math_418.jpg,Evaluate: ∫ (3x +0) dx,1.5x^2 +0x + C
+math_419.jpg,"P(A)=0.3, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.44
+math_420.jpg,"P(A)=0.4, P(B)=0.5, P(A∩B)=0.16. Find P(A∪B)",0.74
+math_421.jpg,"Find det([[2,3],[-4,0]])",12
+math_422.jpg,Find d/dx of f(x) = 2x^3 +0x^2 +4x,6x^2 +0x +4
+math_423.jpg,"Find det([[-3,3],[4,5]])",-27
+math_424.jpg,"P(A)=0.6, P(B)=0.3, P(A∩B)=0.06. Find P(A∪B)",0.84
+math_425.jpg,Solve for x: 1x^2 +6x -27 = 0,"x = -9, 3"
+math_426.jpg,Find d/dx of f(x) = 2x^3 +4x^2 -5x,6x^2 +8x -5
+math_427.jpg,Find d/dx of f(x) = 3x^3 -6x^2 -3x,9x^2 -12x -3
+math_428.jpg,"Find det([[-2,-1],[4,-2]])",8
+math_429.jpg,"Find det([[-2,4],[4,-2]])",-12
+math_430.jpg,Evaluate: ∫ (2x +6) dx,1.0x^2 +6x + C
+math_431.jpg,Evaluate: ∫ (5x -4) dx,2.5x^2 -4x + C
+math_432.jpg,Find d/dx of f(x) = 4x^3 +5x^2 +6x,12x^2 +10x +6
+math_433.jpg,Find d/dx of f(x) = 5x^3 +4x^2 -4x,15x^2 +8x -4
+math_434.jpg,"P(A)=0.3, P(B)=0.3, P(A∩B)=0.12. Find P(A∪B)",0.48
+math_435.jpg,Find d/dx of f(x) = 3x^3 +3x^2 -6x,9x^2 +6x -6
+math_436.jpg,Find d/dx of f(x) = 4x^3 -3x^2 -1x,12x^2 -6x -1
+math_437.jpg,Evaluate: ∫ (2x -1) dx,1.0x^2 -1x + C
+math_438.jpg,Evaluate: ∫ (4x +3) dx,2.0x^2 +3x + C
+math_439.jpg,"Find det([[-5,4],[2,2]])",-18
+math_440.jpg,Evaluate: ∫ (2x -5) dx,1.0x^2 -5x + C
+math_441.jpg,"Find det([[4,-3],[-3,0]])",-9
+math_442.jpg,Find d/dx of f(x) = 3x^3 +1x^2 +2x,9x^2 +2x +2
+math_443.jpg,Solve for x: 1x^2 +5x -14 = 0,"x = 2, -7"
+math_444.jpg,"P(A)=0.2, P(B)=0.4, P(A∩B)=0.06. Find P(A∪B)",0.54
+math_445.jpg,Find d/dx of f(x) = 4x^3 +4x^2 +2x,12x^2 +8x +2
+math_446.jpg,Find d/dx of f(x) = 3x^3 +4x^2 +4x,9x^2 +8x +4
+math_447.jpg,"P(A)=0.4, P(B)=0.5, P(A∩B)=0.12. Find P(A∪B)",0.78
+math_448.jpg,Find d/dx of f(x) = 4x^3 -4x^2 -6x,12x^2 -8x -6
+math_449.jpg,"Find det([[-1,2],[3,-5]])",-1
+math_450.jpg,"Find det([[0,1],[0,5]])",0
+math_451.jpg,"Find det([[5,-1],[2,2]])",12
+math_452.jpg,Evaluate: ∫ (2x +0) dx,1.0x^2 +0x + C
+math_453.jpg,Find d/dx of f(x) = 5x^3 +1x^2 -3x,15x^2 +2x -3
+math_454.jpg,"P(A)=0.6, P(B)=0.5, P(A∩B)=0.15. Find P(A∪B)",0.95
+math_455.jpg,"Find det([[5,3],[-1,5]])",28
+math_456.jpg,"Find det([[-3,-1],[1,-4]])",13
+math_457.jpg,"P(A)=0.3, P(B)=0.5, P(A∩B)=0.09. Find P(A∪B)",0.71
+math_458.jpg,"Find det([[3,5],[-5,-1]])",22
+math_459.jpg,Find d/dx of f(x) = 4x^3 -5x^2 -3x,12x^2 -10x -3
+math_460.jpg,Evaluate: ∫ (2x +0) dx,1.0x^2 +0x + C
+math_461.jpg,Find d/dx of f(x) = 1x^3 +3x^2 -5x,3x^2 +6x -5
+math_462.jpg,Find d/dx of f(x) = 4x^3 -1x^2 +6x,12x^2 -2x +6
+math_463.jpg,Find d/dx of f(x) = 3x^3 -6x^2 -6x,9x^2 -12x -6
+math_464.jpg,Evaluate: ∫ (1x +4) dx,0.5x^2 +4x + C
+math_465.jpg,Find d/dx of f(x) = 4x^3 -3x^2 +4x,12x^2 -6x +4
+math_466.jpg,Find d/dx of f(x) = 5x^3 -2x^2 -2x,15x^2 -4x -2
+math_467.jpg,"Find det([[-2,5],[-5,4]])",17
+math_468.jpg,"P(A)=0.2, P(B)=0.3, P(A∩B)=0.08. Find P(A∪B)",0.42
+math_469.jpg,Evaluate: ∫ (3x +5) dx,1.5x^2 +5x + C
+math_470.jpg,"P(A)=0.3, P(B)=0.3, P(A∩B)=0.12. Find P(A∪B)",0.48
+math_471.jpg,"P(A)=0.6, P(B)=0.4, P(A∩B)=0.12. Find P(A∪B)",0.88
+math_472.jpg,Solve for x: 1x^2 +7x +12 = 0,"x = -3, -4"
+math_473.jpg,Evaluate: ∫ (3x -2) dx,1.5x^2 -2x + C
+math_474.jpg,Find d/dx of f(x) = 5x^3 +3x^2 +4x,15x^2 +6x +4
+math_475.jpg,"P(A)=0.6, P(B)=0.4, P(A∩B)=0.16. Find P(A∪B)",0.84
+math_476.jpg,Find d/dx of f(x) = 2x^3 -4x^2 -1x,6x^2 -8x -1
+math_477.jpg,Evaluate: ∫ (4x +1) dx,2.0x^2 +1x + C
+math_478.jpg,"P(A)=0.2, P(B)=0.5, P(A∩B)=0.06. Find P(A∪B)",0.64
+math_479.jpg,Evaluate: ∫ (4x +2) dx,2.0x^2 +2x + C
+math_480.jpg,Evaluate: ∫ (5x -5) dx,2.5x^2 -5x + C
+math_481.jpg,Solve for x: 1x^2 +9x +8 = 0,"x = -8, -1"
+math_482.jpg,"P(A)=0.2, P(B)=0.2, P(A∩B)=0.04. Find P(A∪B)",0.36
+math_483.jpg,Evaluate: ∫ (5x -2) dx,2.5x^2 -2x + C
+math_484.jpg,"Find det([[-5,2],[4,-2]])",2
+math_485.jpg,"P(A)=0.6, P(B)=0.2, P(A∩B)=0.06. Find P(A∪B)",0.74
+math_486.jpg,Find d/dx of f(x) = 2x^3 -4x^2 -4x,6x^2 -8x -4
+math_487.jpg,Solve for x: 1x^2 +6x -7 = 0,"x = 1, -7"
+math_488.jpg,Solve for x: 1x^2 -10x +9 = 0,"x = 1, 9"
+math_489.jpg,Solve for x: 1x^2 -7x +0 = 0,"x = 0, 7"
+math_490.jpg,Find d/dx of f(x) = 4x^3 +0x^2 +6x,12x^2 +0x +6
+math_491.jpg,"Find det([[-2,0],[3,4]])",-8
+math_492.jpg,"P(A)=0.2, P(B)=0.4, P(A∩B)=0.08. Find P(A∪B)",0.52
+math_493.jpg,Solve for x: 1x^2 +14x +48 = 0,"x = -8, -6"
+math_494.jpg,Evaluate: ∫ (1x +3) dx,0.5x^2 +3x + C
+math_495.jpg,Find d/dx of f(x) = 2x^3 -3x^2 +3x,6x^2 -6x +3
+math_496.jpg,"Find det([[1,5],[0,5]])",5
+math_497.jpg,Find d/dx of f(x) = 3x^3 +0x^2 +2x,9x^2 +0x +2
+math_498.jpg,Solve for x: 1x^2 -6x -27 = 0,"x = 9, -3"
+math_499.jpg,"P(A)=0.4, P(B)=0.2, P(A∩B)=0.04. Find P(A∪B)",0.56
+math_500.jpg,"Find det([[-5,-1],[-4,-3]])",11
