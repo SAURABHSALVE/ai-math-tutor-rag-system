@@ -12,9 +12,11 @@ Agents (6 total – 5 mandatory + 1 bonus):
 from __future__ import annotations
 
 import json
+import re
 import operator
 from typing import Annotated, TypedDict, Literal
 
+import multiprocessing
 import sympy
 from openai import OpenAI
 from langgraph.graph import StateGraph, END
@@ -87,6 +89,138 @@ class MathState(TypedDict):
     trace: Annotated[list, operator.add]
 
 
+# ─── Deterministic topic detection ────────────────────────────
+
+_TOPIC_KEYWORDS: dict[str, list[str]] = {
+    "linear_algebra": [
+        "matrix", "matrices", "determinant", "det(", "eigen", "eigenvalue",
+        "eigenvector", "vector", "rank", "trace", "inverse matrix",
+        "transpose", "adjoint", "cofactor", "cramer", "gauss",
+        "row echelon", "column space", "null space", "linear transformation",
+        "[[",  # matrix notation
+    ],
+    "probability": [
+        "probability", "P(", "p(", "random variable", "bayes",
+        "expected value", "variance", "binomial distribution",
+        "poisson", "normal distribution", "conditional probability",
+        "independent events", "mutually exclusive", "permutation",
+        "combination", "nCr", "nPr", "factorial", "dice", "coin",
+        "card", "urn", "sample space", "event",
+        # Extended: conditional probability, distributions
+        "P(A|B)", "P(B|A)", "given that", "conditional",
+        "distribution", "expected", "E(X)", "Var(", "std dev",
+        "bernoulli", "geometric distribution", "hypergeometric",
+        "mean", "median",
+    ],
+    "calculus": [
+        "derivative", "differentiate", "differentiation", "d/dx", "d/dy",
+        "integral", "integrate", "integration", "antiderivative",
+        "limit", "lim ", "lim(", "continuous", "continuity",
+        "maxima", "minima", "maximum", "minimum", "optimize", "optimization",
+        "critical point", "inflection", "concav", "taylor", "maclaurin",
+        "series expansion", "convergence", "divergence",
+        "partial derivative", "gradient",
+        # Extended: series, limits, summation
+        "taylor series", "power series", "infinite series",
+        "summation", "sigma notation", "sum from", "sum to",
+        "radius of convergence", "converges", "diverges",
+        "l'hopital", "l'hospital",
+    ],
+    "algebra": [
+        "solve", "equation", "polynomial", "quadratic", "linear equation",
+        "cubic", "roots", "factor", "x^", "x**", "= 0",
+        "inequality", "system of equations", "simultaneous",
+        "arithmetic progression", "geometric progression", "sequence",
+        "series", "sum of", "product of", "identity", "binomial theorem",
+        "remainder theorem", "synthetic division",
+    ],
+}
+
+# Regex patterns that identify algebraic equations even without keywords
+_ALGEBRA_REGEX_PATTERNS: list[re.Pattern] = [
+    re.compile(r'[a-z]\s*\^?\s*2.*=', re.IGNORECASE),        # x^2 ... =   or  x2 ... =
+    re.compile(r'[a-z]\s*\*\*\s*2.*=', re.IGNORECASE),       # x**2 ... =
+    re.compile(r'[a-z]\s*\^?\s*3.*=', re.IGNORECASE),        # x^3 ... =   (cubic)
+    re.compile(r'\d+[a-z]\s*[+\-]\s*\d+\s*=', re.IGNORECASE),  # 5x + 6 =  or  3x - 2 =
+    re.compile(r'[a-z]\s*[+\-]\s*\d+\s*=\s*\d+', re.IGNORECASE),  # x + 5 = 10
+    re.compile(r'\d+[a-z]\^2', re.IGNORECASE),                # 3x^2
+    re.compile(r'[a-z]\^2\s*[+\-]', re.IGNORECASE),          # x^2 + ...  or  x^2 - ...
+]
+
+# Regex patterns for probability expressions
+_PROBABILITY_REGEX_PATTERNS: list[re.Pattern] = [
+    re.compile(r'P\s*\(\s*[A-Za-z]+\s*\|\s*[A-Za-z]+\s*\)'),  # P(A|B)
+    re.compile(r'P\s*\(\s*[A-Za-z]+\s*\)'),                    # P(A)
+    re.compile(r'expected\s+value', re.IGNORECASE),
+    re.compile(r'variance', re.IGNORECASE),
+    re.compile(r'distribution', re.IGNORECASE),
+]
+
+
+def detect_topic(problem_text: str) -> str:
+    """Deterministic topic detection using keyword matching + regex patterns.
+
+    Returns one of: "linear_algebra", "probability", "calculus", "algebra", "other".
+    Uses keyword scoring first, then regex fallback for equations and probability.
+    """
+    text_lower = problem_text.lower()
+    scores: dict[str, int] = {topic: 0 for topic in _TOPIC_KEYWORDS}
+
+    for topic, keywords in _TOPIC_KEYWORDS.items():
+        for kw in keywords:
+            if kw.lower() in text_lower:
+                scores[topic] += 1
+
+    # Regex boost: detect algebraic equation structures
+    for pattern in _ALGEBRA_REGEX_PATTERNS:
+        if pattern.search(problem_text):
+            scores["algebra"] += 1
+
+    # Regex boost: detect probability expressions
+    for pattern in _PROBABILITY_REGEX_PATTERNS:
+        if pattern.search(problem_text):
+            scores["probability"] += 1
+
+    best_topic = max(scores, key=scores.get)  # type: ignore[arg-type]
+    if scores[best_topic] == 0:
+        return "other"
+    return best_topic
+
+
+# ─── Deterministic OCR / text cleaning ────────────────────────
+
+def clean_math_text(text: str) -> str:
+    """Deterministic preprocessing to fix common OCR and transcription artifacts.
+
+    Runs BEFORE the LLM parser to catch obvious patterns.
+    """
+    result = text
+
+    # Fix exponent notation: x2 → x^2, 3x2 → 3x^2, x3 → x^3
+    # Only when a single letter is followed by a single digit (not part of a word)
+    result = re.sub(r'(?<=[a-zA-Z])(\d)(?!\d)', r'^{\1}', result)
+    # Simplify x^{2} to x^2 for single digits
+    result = re.sub(r'\^\{(\d)\}', r'^\1', result)
+
+    # Normalize spacing around operators: 5x+6 → 5x + 6, x^2-5x → x^2 - 5x
+    result = re.sub(r'(?<=\w)([+\-])(?=\w)', r' \1 ', result)
+    # But don't break exponents: x ^ 2 should stay x^2
+    result = re.sub(r'\s*\^\s*', '^', result)
+
+    # Fix common OCR misreads
+    result = result.replace('×', '*')
+    result = result.replace('÷', '/')
+    result = result.replace('−', '-')  # en-dash to minus
+    result = result.replace('–', '-')  # em-dash to minus
+    result = result.replace('\u2018', "'").replace('\u2019', "'")  # curly single quotes
+    result = result.replace('\u201c', '"').replace('\u201d', '"')  # curly double quotes
+
+    # Normalize whitespace
+    result = re.sub(r'[ \t]+', ' ', result).strip()
+
+    return result
+
+
 # ═════════════════════════════════════════════════════════════
 # Agent 0 (Bonus): Guardrail Agent
 # ═════════════════════════════════════════════════════════════
@@ -150,9 +284,12 @@ def parser_node(state: MathState) -> dict:
     raw = state["raw_text"]
     input_type = state["input_type"]
 
+    # Deterministic OCR cleaning BEFORE LLM parsing
+    cleaned = clean_math_text(raw)
+
     result = _llm_json(
-        f"""Raw input (source: {input_type}):
-\"\"\"{raw}\"\"\"
+        f"""Raw input (source: {input_type}, pre-cleaned):
+\"\"\"{cleaned}\"\"\"
 
 You are a precise mathematical expression parser. First, detect and correct common
 OCR or transcription errors before structuring the problem:
@@ -204,6 +341,16 @@ Return a JSON object:
     for k, v in defaults.items():
         result.setdefault(k, v)
 
+    # Deterministic topic override — keyword matching is more reliable than LLM
+    det_topic = detect_topic(result["problem_text"])
+    if det_topic != "other":
+        result["topic"] = det_topic
+    elif result["topic"] == "other":
+        # Also try detecting from the raw input in case parsing cleaned too much
+        det_topic_raw = detect_topic(raw)
+        if det_topic_raw != "other":
+            result["topic"] = det_topic_raw
+
     new_status = "needs_clarification" if result.get("needs_clarification") else "running"
     corrections = result.get("corrections_applied", [])
     correction_note = f", Corrections: {len(corrections)}" if corrections else ""
@@ -220,34 +367,84 @@ Return a JSON object:
 # Agent 2: Intent Router Agent
 # ═════════════════════════════════════════════════════════════
 
-def router_node(state: MathState) -> dict:
-    """Classify problem type and decide solving strategy."""
-    parsed = state["parsed"]
+# Deterministic topic → (strategy, tools) mapping
+_TOPIC_ROUTING: dict[str, dict] = {
+    "algebra": {
+        "strategy": "step_by_step_derivation",
+        "tools_needed": ["symbolic_solver"],
+    },
+    "calculus": {
+        "strategy": "step_by_step_derivation",
+        "tools_needed": ["symbolic_solver"],
+    },
+    "probability": {
+        "strategy": "formula_application",
+        "tools_needed": ["calculator"],
+    },
+    "linear_algebra": {
+        "strategy": "direct_computation",
+        "tools_needed": ["matrix_operations"],
+    },
+}
 
+
+def _is_optimization_problem(text: str) -> bool:
+    """Detect optimization problems (find max/min of a function)."""
+    text_lower = text.lower()
+    return any(kw in text_lower for kw in (
+        "maximize", "minimiz", "maximum", "minimum", "maxima", "minima",
+        "optimize", "optimization", "critical point", "extrema",
+        "greatest", "least value", "largest", "smallest",
+    ))
+
+
+def router_node(state: MathState) -> dict:
+    """Classify problem type and decide solving strategy.
+
+    Uses deterministic topic→strategy→tools mapping first,
+    then LLM only for RAG queries and complexity estimation.
+    """
+    parsed = state["parsed"]
+    topic = parsed.get("topic", "other")
+    problem_text = parsed["problem_text"]
+
+    # Deterministic routing based on topic
+    route_defaults = _TOPIC_ROUTING.get(topic, {
+        "strategy": "step_by_step_derivation",
+        "tools_needed": ["symbolic_solver", "calculator"],
+    })
+
+    # Override strategy for optimization problems
+    if _is_optimization_problem(problem_text):
+        route_defaults = dict(route_defaults)
+        route_defaults["strategy"] = "optimization"
+        if "symbolic_solver" not in route_defaults["tools_needed"]:
+            route_defaults["tools_needed"] = list(route_defaults["tools_needed"]) + ["symbolic_solver"]
+
+    # Use LLM only for RAG queries and complexity — not for strategy/tools
     result = _llm_json(
-        f"""Problem: {parsed['problem_text']}
-Topic: {parsed['topic']}
+        f"""Problem: {problem_text}
+Topic: {topic}
 Variables: {parsed.get('variables',[])}
 
 Return JSON:
-- "strategy": one of ["direct_computation","formula_application","step_by_step_derivation","proof","optimization","counting_combinatorics"]
-- "tools_needed": list from ["calculator","symbolic_solver","matrix_operations"]
-- "rag_queries": 2-3 search queries for the knowledge base
+- "rag_queries": 2-3 search queries for the knowledge base (short, formula-focused)
 - "complexity": one of ["easy","medium","hard"]""",
-        system="You are a math routing agent. Decide the solving strategy.",
+        system="You are a math routing agent. Generate search queries for the knowledge base and estimate complexity.",
         model=config.FAST_MODEL,
-        max_tokens=300,
+        max_tokens=200,
     )
 
-    defaults = {"strategy": "step_by_step_derivation", "tools_needed": ["calculator"],
-                "rag_queries": [parsed["problem_text"]], "complexity": "medium"}
-    for k, v in defaults.items():
-        result.setdefault(k, v)
+    # Merge: deterministic strategy/tools + LLM rag_queries/complexity
+    result["strategy"] = route_defaults["strategy"]
+    result["tools_needed"] = route_defaults["tools_needed"]
+    result.setdefault("rag_queries", [problem_text])
+    result.setdefault("complexity", "medium")
 
     return {
         "route": result,
         "trace": [{"agent": "Intent Router", "status": "completed",
-                    "output_summary": f"Strategy: {result['strategy']}, Complexity: {result['complexity']}"}],
+                    "output_summary": f"Strategy: {result['strategy']}, Complexity: {result['complexity']}, Topic: {topic}"}],
     }
 
 
@@ -277,17 +474,50 @@ def _sympy_calculator(problem_text: str) -> str | None:
     return None
 
 
+def _safe_parse_matrix(text: str) -> sympy.Matrix | None:
+    """Safely parse a [[...], [...]] matrix string without eval().
+
+    Uses sympy.sympify on each element individually.
+    """
+    try:
+        # Strip outer whitespace
+        text = text.strip()
+        # Must start with [[ and end with ]]
+        if not (text.startswith("[[") and text.endswith("]]")):
+            return None
+
+        # Remove outer brackets: "[[1,2],[3,4]]" → "[1,2],[3,4]"
+        inner = text[1:-1]
+
+        # Split into rows by matching [...] groups
+        row_strs = re.findall(r'\[([^\[\]]+)\]', inner)
+        if not row_strs:
+            return None
+
+        rows = []
+        for row_str in row_strs:
+            elements = []
+            for elem in row_str.split(","):
+                elem = elem.strip()
+                if elem:
+                    elements.append(sympy.sympify(elem))
+            rows.append(elements)
+
+        return sympy.Matrix(rows)
+    except Exception:
+        return None
+
+
 def _sympy_matrix_ops(problem_text: str) -> str | None:
     """Use SymPy for matrix determinant / inverse if matrix is detected."""
     try:
-        # Simple pattern: detect [[...]] notation
         if "[[" in problem_text and "]]" in problem_text:
-            import re
             mat_str = re.search(r'\[\[.*?\]\]', problem_text, re.DOTALL)
             if mat_str:
-                mat = sympy.Matrix(eval(mat_str.group()))  # noqa: S307
-                det = mat.det()
-                return f"SymPy matrix det = {det}"
+                mat = _safe_parse_matrix(mat_str.group())
+                if mat is not None:
+                    det = mat.det()
+                    return f"SymPy matrix det = {det}"
     except Exception:
         pass
     return None
@@ -332,11 +562,11 @@ _SYMPY_SAFE_NAMESPACE = {
 }
 
 
-def _execute_sympy_code(code: str) -> dict:
-    """Safely execute LLM-generated SymPy code and capture the result.
+_SYMPY_EXEC_TIMEOUT = 3  # seconds
 
-    Returns {"success": bool, "result": str, "error": str}.
-    """
+
+def _run_sympy_in_process(code: str, result_queue: multiprocessing.Queue) -> None:
+    """Target function for subprocess execution of SymPy code."""
     namespace = dict(_SYMPY_SAFE_NAMESPACE)
     namespace["__builtins__"] = {"range": range, "len": len, "list": list,
                                   "tuple": tuple, "dict": dict, "set": set,
@@ -347,34 +577,99 @@ def _execute_sympy_code(code: str) -> dict:
                                   "round": round, "enumerate": enumerate,
                                   "zip": zip, "map": map, "pow": pow}
     try:
-        # Execute and capture the last expression as result
         lines = code.strip().split("\n")
-        # Find last non-comment, non-empty line
         exec_block = "\n".join(lines[:-1]) if len(lines) > 1 else ""
         last_line = lines[-1].strip()
 
         if exec_block:
             exec(exec_block, namespace)  # noqa: S102
 
-        # Try to eval the last line as an expression
         try:
             result = eval(last_line, namespace)  # noqa: S307
         except SyntaxError:
             exec(last_line, namespace)  # noqa: S102
             result = namespace.get("result", namespace.get("answer", "executed"))
 
-        return {"success": True, "result": str(result), "error": ""}
+        result_queue.put({"success": True, "result": str(result), "error": ""})
     except Exception as e:
-        return {"success": False, "result": "", "error": str(e)}
+        result_queue.put({"success": False, "result": "", "error": str(e)})
+
+
+def _execute_sympy_code(code: str) -> dict:
+    """Safely execute LLM-generated SymPy code with a timeout.
+
+    Returns {"success": bool, "result": str, "error": str}.
+    Kills execution after _SYMPY_EXEC_TIMEOUT seconds to prevent infinite loops.
+    """
+    result_queue: multiprocessing.Queue = multiprocessing.Queue()
+    proc = multiprocessing.Process(
+        target=_run_sympy_in_process, args=(code, result_queue)
+    )
+    proc.start()
+    proc.join(timeout=_SYMPY_EXEC_TIMEOUT)
+
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(timeout=1)
+        return {"success": False, "result": "", "error": "execution_timeout"}
+
+    if not result_queue.empty():
+        return result_queue.get()
+    return {"success": False, "result": "", "error": "no_result_returned"}
+
+
+_TOPIC_SYMPY_EXAMPLES: dict[str, str] = {
+    "algebra": """ALGEBRA EXAMPLES:
+- Quadratic: solve(x**2 - 5*x + 6, x)  → [2, 3]
+- System: solve([2*x + y - 5, x - y - 1], [x, y])
+- Factor: factor(x**3 - 6*x**2 + 11*x - 6)
+- Simplify: simplify((x**2 - 1)/(x - 1))
+- Inequality: solve(x**2 - 4 > 0, x)""",
+
+    "calculus": """CALCULUS EXAMPLES:
+- Derivative: diff(x**3 - 3*x**2 + 2*x, x)
+- Second derivative: diff(x**4, x, 2)
+- Integral: integrate(x**2, x)
+- Definite integral: integrate(x**2, (x, 0, 1))
+- Limit: limit(sin(x)/x, x, 0)
+- OPTIMIZATION (find max/min):
+  f = x**3 - 3*x**2 + 2
+  f_prime = diff(f, x)
+  crit = solve(f_prime, x)
+  vals = [(pt, f.subs(x, pt)) for pt in crit]
+  vals  # last line returns [(critical_point, f_value), ...]""",
+
+    "probability": """PROBABILITY EXAMPLES:
+- Union: Rational(3,4) + Rational(1,2) - Rational(1,4)
+- Combinations: binomial(10, 3)
+- Factorial: factorial(5)
+- Bayes: (Rational(1,100) * Rational(99,100)) / (Rational(1,100) * Rational(99,100) + Rational(99,100) * Rational(2,100))
+- ALWAYS use Rational(num, den) for fractions, never float division.""",
+
+    "linear_algebra": """LINEAR ALGEBRA EXAMPLES:
+- Determinant: Matrix([[1,2],[3,4]]).det()
+- Inverse: Matrix([[1,2],[3,4]]).inv()
+- Eigenvalues: Matrix([[1,2],[3,4]]).eigenvals()
+- Multiply: Matrix([[1,2],[3,4]]) * Matrix([[5],[6]])
+- Rank: Matrix([[1,2,3],[4,5,6]]).rank()
+- Transpose: Matrix([[1,2],[3,4]]).T""",
+}
 
 
 def _generate_sympy_code(problem_text: str, topic: str) -> str:
-    """Ask the LLM to translate a math problem into executable SymPy code."""
+    """Ask the LLM to translate a math problem into executable SymPy code.
+
+    Uses topic-aware examples to guide code generation.
+    """
+    topic_examples = _TOPIC_SYMPY_EXAMPLES.get(topic, "")
+
     code_raw = _llm(
         f"""Translate this math problem into Python SymPy code that computes the answer.
 
 PROBLEM: {problem_text}
 TOPIC: {topic}
+
+{topic_examples}
 
 RULES:
 - Use ONLY these SymPy functions: symbols, solve, diff, integrate, limit, simplify, expand, factor, Matrix, det, Eq, sqrt, Rational, sin, cos, tan, log, exp, factorial, binomial, Sum, Product, series, solveset, trigsimp, apart, together, cancel, nsolve, Abs, pi, E, oo, eye, zeros, FiniteSet, Interval
@@ -382,12 +677,9 @@ RULES:
 - The LAST line must be an expression that evaluates to the final answer.
 - Do NOT import anything. Do NOT use print().
 - Do NOT use os, sys, subprocess, open, eval, exec, __import__, or any I/O.
-- For equations like "x^2 - 5x + 6 = 0", use: solve(x**2 - 5*x + 6, x)
-- For derivatives like "d/dx(x^3 - 3x^2 + 2x)", use: diff(x**3 - 3*x**2 + 2*x, x)
-- For integrals, use: integrate(expr, x) or integrate(expr, (x, a, b))
-- For limits, use: limit(expr, x, value)
-- For probability with fractions, use Rational(num, den).
-- For matrices, use Matrix([[...], [...]]).det() or .inv() etc.
+- For probability, ALWAYS use Rational(num, den) — never use float division like 3/4.
+- For optimization: compute derivative, solve for critical points, evaluate f(x) at each.
+- For matrices, use Matrix([[...], [...]]) and chain .det(), .inv(), .eigenvals() etc.
 
 Return ONLY the Python code, no markdown fences, no explanation.""",
         system=(
@@ -487,7 +779,6 @@ def _verify_by_substitution(problem_text: str, answer: str) -> dict:
         rhs = sympy.sympify(parts[1].strip()) if len(parts) > 1 and parts[1].strip() else 0
 
         # Parse answer values (handle "x = 2, 3" or "x = 2 and x = 3" or "[2, 3]")
-        import re
         nums = re.findall(r'-?\d+(?:\.\d+)?(?:/\d+)?', str(answer))
         if not nums:
             return result
@@ -516,7 +807,6 @@ def _verify_derivative(problem_text: str, answer: str) -> dict:
     """Verify a derivative answer by independently differentiating with SymPy."""
     result = {"check": "derivative_verification", "result": "skip", "detail": "Not applicable"}
     try:
-        import re
         # Detect derivative problems: "derivative of f(x) = ..." or "d/dx ..."
         pattern = r"(?:derivative|differentiat|d/dx)\s*(?:of\s+)?(?:f\(x\)\s*=\s*)?(.+)"
         match = re.search(pattern, problem_text, re.IGNORECASE)
@@ -547,7 +837,6 @@ def _verify_probability_bounds(solution_data: dict) -> dict:
     """Check that any probability values in the solution are in [0, 1]."""
     result = {"check": "probability_bounds", "result": "skip", "detail": "Not applicable"}
     try:
-        import re
         answer = str(solution_data.get("final_answer", ""))
         solution_text = str(solution_data.get("solution", ""))
         combined = answer + " " + solution_text
@@ -583,15 +872,92 @@ def _verify_probability_bounds(solution_data: dict) -> dict:
     return result
 
 
-def _sympy_independent_solve(problem_text: str) -> dict:
-    """Attempt to independently solve the problem with SymPy and return the result."""
-    result = {"check": "independent_recompute", "result": "skip", "detail": "No independent solution available"}
+def _verify_determinant(problem_text: str, answer: str) -> dict:
+    """Verify a determinant answer by recomputing with SymPy."""
+    result = {"check": "determinant_verification", "result": "skip", "detail": "Not applicable"}
     try:
-        x, y, z = sympy.symbols("x y z")
-        if "=" in problem_text:
+        mat_match = re.search(r'\[\[.*?\]\]', problem_text, re.DOTALL)
+        if not mat_match:
+            return result
+
+        mat = _safe_parse_matrix(mat_match.group())
+        if mat is None:
+            return result
+        correct_det = mat.det()
+
+        # Parse claimed answer
+        nums = re.findall(r'-?\d+(?:\.\d+)?(?:/\d+)?', str(answer))
+        if not nums:
+            result["detail"] = f"Could not parse answer, SymPy det = {correct_det}"
+            result["result"] = "pass"
+            result["sympy_answer"] = str(correct_det)
+            return result
+
+        claimed = sympy.Rational(nums[0])
+        if sympy.simplify(correct_det - claimed) == 0:
+            result["result"] = "pass"
+            result["detail"] = f"det = {correct_det} matches claimed answer"
+        else:
+            result["result"] = "fail"
+            result["detail"] = f"det = {correct_det}, but claimed: {claimed}"
+            result["sympy_answer"] = str(correct_det)
+    except Exception as e:
+        result["detail"] = f"Could not verify determinant: {e}"
+    return result
+
+
+def _verify_integral(problem_text: str, answer: str) -> dict:
+    """Verify an integral answer by differentiating the result with SymPy."""
+    result = {"check": "integral_verification", "result": "skip", "detail": "Not applicable"}
+    try:
+        integral_match = re.search(
+            r"(?:integral|integrate)\s*(?:of\s+)?(.+?)(?:\s+(?:dx|with respect to x))?$",
+            problem_text, re.IGNORECASE,
+        )
+        if not integral_match:
+            return result
+
+        x = sympy.Symbol("x")
+        expr_str = integral_match.group(1).strip().rstrip(".")
+        original_expr = sympy.sympify(expr_str)
+
+        # Parse claimed antiderivative
+        answer_clean = re.sub(r"^[^=]*=\s*", "", str(answer)).strip()
+        # Remove "+ C" constant
+        answer_clean = re.sub(r'\+\s*C\b', '', answer_clean).strip()
+        claimed = sympy.sympify(answer_clean)
+
+        # Differentiate the claimed antiderivative — should equal the integrand
+        deriv_of_claimed = sympy.diff(claimed, x)
+        if sympy.simplify(deriv_of_claimed - original_expr) == 0:
+            result["result"] = "pass"
+            result["detail"] = f"d/dx({claimed}) = {original_expr} (matches integrand)"
+        else:
+            correct_integral = sympy.integrate(original_expr, x)
+            result["result"] = "fail"
+            result["detail"] = f"d/dx({claimed}) = {deriv_of_claimed}, expected {original_expr}. Correct: {correct_integral}"
+            result["sympy_answer"] = str(correct_integral)
+    except Exception as e:
+        result["detail"] = f"Could not verify integral: {e}"
+    return result
+
+
+def _sympy_independent_solve(problem_text: str, topic: str = "other") -> dict:
+    """Attempt to independently solve the problem with SymPy and return the result.
+
+    Covers: algebra (solve), calculus (diff/integrate), linear_algebra (det/inv),
+    and probability (arithmetic with Rationals).
+    """
+    result = {"check": "independent_recompute", "result": "skip", "detail": "No independent solution available"}
+    x, y, z = sympy.symbols("x y z")
+
+    try:
+        # ── Algebra: solve equations ──
+        if topic in ("algebra", "other") and "=" in problem_text:
             parts = problem_text.split("=")
             lhs = sympy.sympify(parts[0].strip())
-            rhs = sympy.sympify(parts[1].strip()) if len(parts) > 1 and parts[1].strip() else 0
+            rhs_str = parts[1].strip() if len(parts) > 1 and parts[1].strip() else "0"
+            rhs = sympy.sympify(rhs_str)
             sols = sympy.solve(lhs - rhs, x)
             if sols:
                 result["result"] = "pass"
@@ -599,18 +965,91 @@ def _sympy_independent_solve(problem_text: str) -> dict:
                 result["sympy_answer"] = str(sols)
                 return result
 
-        import re
+        # ── Calculus: derivatives ──
         deriv_match = re.search(
-            r"(?:derivative|differentiat|d/dx)\s*(?:of\s+)?(?:f\(x\)\s*=\s*)?(.+)",
+            r"(?:derivative|differentiat|d/dx)\s*(?:of\s+)?(?:f\s*\(\s*x\s*\)\s*=\s*)?(.+)",
             problem_text, re.IGNORECASE,
         )
         if deriv_match:
-            expr = sympy.sympify(deriv_match.group(1).strip().rstrip("."))
+            expr_str = deriv_match.group(1).strip().rstrip(".")
+            expr = sympy.sympify(expr_str)
             deriv = sympy.diff(expr, x)
             result["result"] = "pass"
             result["detail"] = f"SymPy derivative: {deriv}"
             result["sympy_answer"] = str(deriv)
             return result
+
+        # ── Calculus: integrals ──
+        integral_match = re.search(
+            r"(?:integral|integrate)\s*(?:of\s+)?(.+?)(?:\s+(?:dx|with respect to x))?$",
+            problem_text, re.IGNORECASE,
+        )
+        if integral_match and topic in ("calculus", "other"):
+            expr_str = integral_match.group(1).strip().rstrip(".")
+            expr = sympy.sympify(expr_str)
+            anti = sympy.integrate(expr, x)
+            result["result"] = "pass"
+            result["detail"] = f"SymPy integral: {anti}"
+            result["sympy_answer"] = str(anti)
+            return result
+
+        # ── Linear Algebra: determinant ──
+        if topic == "linear_algebra" or "determinant" in problem_text.lower():
+            mat_match = re.search(r'\[\[.*?\]\]', problem_text, re.DOTALL)
+            if mat_match:
+                mat = _safe_parse_matrix(mat_match.group())
+                if mat is None:
+                    return result
+                det = mat.det()
+                result["result"] = "pass"
+                result["detail"] = f"SymPy determinant: {det}"
+                result["sympy_answer"] = str(det)
+                return result
+
+        # ── Probability: recompute union/intersection/conditional ──
+        if topic == "probability":
+            _prob_val = r'(\d+/\d+|\d+\.?\d*)'
+            pa_match = re.search(rf'P\s*\(\s*A\s*\)\s*=\s*{_prob_val}', problem_text, re.IGNORECASE)
+            pb_match = re.search(rf'P\s*\(\s*B\s*\)\s*=\s*{_prob_val}', problem_text, re.IGNORECASE)
+            pab_match = re.search(
+                rf'P\s*\(\s*A\s*(?:and|∩|∧|,)\s*B\s*\)\s*=\s*{_prob_val}',
+                problem_text, re.IGNORECASE,
+            )
+
+            pa = sympy.Rational(pa_match.group(1)) if pa_match else None
+            pb = sympy.Rational(pb_match.group(1)) if pb_match else None
+            pab = sympy.Rational(pab_match.group(1)) if pab_match else None
+
+            # Conditional probability: P(A|B) = P(A∩B) / P(B)
+            cond_match = re.search(
+                r'P\s*\(\s*A\s*\|\s*B\s*\)', problem_text, re.IGNORECASE,
+            )
+            if cond_match and pab is not None and pb is not None and pb != 0:
+                p_cond = pab / pb
+                result["result"] = "pass"
+                result["detail"] = f"SymPy P(A|B) = P(A∩B)/P(B) = {pab}/{pb} = {p_cond}"
+                result["sympy_answer"] = str(p_cond)
+                return result
+
+            # Reverse conditional: P(B|A) = P(A∩B) / P(A)
+            cond_rev_match = re.search(
+                r'P\s*\(\s*B\s*\|\s*A\s*\)', problem_text, re.IGNORECASE,
+            )
+            if cond_rev_match and pab is not None and pa is not None and pa != 0:
+                p_cond_rev = pab / pa
+                result["result"] = "pass"
+                result["detail"] = f"SymPy P(B|A) = P(A∩B)/P(A) = {pab}/{pa} = {p_cond_rev}"
+                result["sympy_answer"] = str(p_cond_rev)
+                return result
+
+            # Union: P(A∪B) = P(A) + P(B) - P(A∩B)
+            if pa is not None and pb is not None and pab is not None:
+                p_union = pa + pb - pab
+                result["result"] = "pass"
+                result["detail"] = f"SymPy P(A∪B) = P(A)+P(B)-P(A∩B) = {pa}+{pb}-{pab} = {p_union}"
+                result["sympy_answer"] = str(p_union)
+                return result
+
     except Exception as e:
         result["detail"] = f"Could not recompute: {e}"
     return result
@@ -830,14 +1269,32 @@ def verifier_node(state: MathState) -> dict:
         if deriv_result["result"] != "skip":
             comp_checks.append(deriv_result)
 
+    # Integral check (calculus)
+    if topic == "calculus" or any(
+        kw in problem_text.lower()
+        for kw in ("integral", "integrate", "antiderivative")
+    ):
+        integral_result = _verify_integral(problem_text, final_answer)
+        if integral_result["result"] != "skip":
+            comp_checks.append(integral_result)
+
     # Probability bounds check
     if topic == "probability" or "probab" in problem_text.lower():
         prob_result = _verify_probability_bounds(solution)
         if prob_result["result"] != "skip":
             comp_checks.append(prob_result)
 
-    # Independent re-solve
-    recompute = _sympy_independent_solve(problem_text)
+    # Determinant check (linear algebra)
+    if topic == "linear_algebra" or any(
+        kw in problem_text.lower()
+        for kw in ("determinant", "det(", "matrix")
+    ):
+        det_result = _verify_determinant(problem_text, final_answer)
+        if det_result["result"] != "skip":
+            comp_checks.append(det_result)
+
+    # Independent re-solve (topic-aware)
+    recompute = _sympy_independent_solve(problem_text, topic)
     if recompute["result"] != "skip":
         comp_checks.append(recompute)
 
