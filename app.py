@@ -384,6 +384,17 @@ if result:
             else:
                 st.info("No sources retrieved.")
 
+            # SymPy Self-Consistency
+            sympy_cons = result["solution"].get("sympy_consistency", {})
+            if sympy_cons:
+                st.subheader("SymPy Solver")
+                if sympy_cons.get("consistent"):
+                    st.success("Self-consistent (2 independent runs agree)")
+                else:
+                    st.warning("Inconsistent — two SymPy runs produced different results")
+                    st.caption(f"Run A: {sympy_cons.get('result_a', 'N/A')[:100]}")
+                    st.caption(f"Run B: {sympy_cons.get('result_b', 'N/A')[:100]}")
+
             # Confidence
             st.subheader("Confidence")
             solver_conf = result["solution"].get("confidence", 0)
@@ -502,7 +513,7 @@ if st.session_state.result:
 st.divider()
 st.markdown(
     '<div style="text-align:center;color:#888;font-size:.85rem;">'
-    'Math Mentor v2.0 | GPT-4o + LangGraph + LangChain RAG + FAISS + SQLite Memory'
+    'Math Mentor v3.0 | SymPy-first Solver + Self-Consistency + GPT-4o + LangGraph + RAG + HITL'
     '</div>',
     unsafe_allow_html=True,
 )

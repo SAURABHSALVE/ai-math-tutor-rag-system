@@ -293,6 +293,186 @@ def _sympy_matrix_ops(problem_text: str) -> str | None:
     return None
 
 
+# ─── SymPy-first solver engine ────────────────────────────────
+
+# Safe namespace for executing LLM-generated SymPy code
+_SYMPY_SAFE_NAMESPACE = {
+    "symbols": sympy.symbols, "Symbol": sympy.Symbol,
+    "solve": sympy.solve, "solveset": sympy.solveset,
+    "diff": sympy.diff, "integrate": sympy.integrate,
+    "limit": sympy.limit, "Limit": sympy.Limit,
+    "simplify": sympy.simplify, "expand": sympy.expand,
+    "factor": sympy.factor, "cancel": sympy.cancel,
+    "apart": sympy.apart, "together": sympy.together,
+    "trigsimp": sympy.trigsimp,
+    "sqrt": sympy.sqrt, "Rational": sympy.Rational,
+    "pi": sympy.pi, "E": sympy.E, "I": sympy.I, "oo": sympy.oo,
+    "sin": sympy.sin, "cos": sympy.cos, "tan": sympy.tan,
+    "asin": sympy.asin, "acos": sympy.acos, "atan": sympy.atan,
+    "log": sympy.log, "ln": sympy.log, "exp": sympy.exp,
+    "Abs": sympy.Abs, "factorial": sympy.factorial,
+    "binomial": sympy.binomial, "Piecewise": sympy.Piecewise,
+    "Matrix": sympy.Matrix, "det": lambda m: sympy.Matrix(m).det(),
+    "eye": sympy.eye, "zeros": sympy.zeros,
+    "Eq": sympy.Eq, "Ne": sympy.Ne, "Lt": sympy.Lt, "Le": sympy.Le,
+    "Gt": sympy.Gt, "Ge": sympy.Ge,
+    "Sum": sympy.Sum, "Product": sympy.Product,
+    "sympify": sympy.sympify, "S": sympy.S,
+    "FiniteSet": sympy.FiniteSet, "Interval": sympy.Interval,
+    "series": lambda expr, *a, **kw: expr.series(*a, **kw),
+    "nsolve": sympy.nsolve,
+    "Derivative": sympy.Derivative, "Integral": sympy.Integral,
+    "x": sympy.Symbol("x"), "y": sympy.Symbol("y"),
+    "z": sympy.Symbol("z"), "t": sympy.Symbol("t"),
+    "n": sympy.Symbol("n"), "k": sympy.Symbol("k"),
+    "a": sympy.Symbol("a"), "b": sympy.Symbol("b"),
+    "c": sympy.Symbol("c"),
+    "abs": sympy.Abs, "max": sympy.Max, "min": sympy.Min,
+    "print": lambda *a: None,  # no-op for safety
+}
+
+
+def _execute_sympy_code(code: str) -> dict:
+    """Safely execute LLM-generated SymPy code and capture the result.
+
+    Returns {"success": bool, "result": str, "error": str}.
+    """
+    namespace = dict(_SYMPY_SAFE_NAMESPACE)
+    namespace["__builtins__"] = {"range": range, "len": len, "list": list,
+                                  "tuple": tuple, "dict": dict, "set": set,
+                                  "int": int, "float": float, "str": str,
+                                  "bool": bool, "True": True, "False": False,
+                                  "None": None, "abs": sympy.Abs,
+                                  "sum": sum, "min": min, "max": max,
+                                  "round": round, "enumerate": enumerate,
+                                  "zip": zip, "map": map, "pow": pow}
+    try:
+        # Execute and capture the last expression as result
+        lines = code.strip().split("\n")
+        # Find last non-comment, non-empty line
+        exec_block = "\n".join(lines[:-1]) if len(lines) > 1 else ""
+        last_line = lines[-1].strip()
+
+        if exec_block:
+            exec(exec_block, namespace)  # noqa: S102
+
+        # Try to eval the last line as an expression
+        try:
+            result = eval(last_line, namespace)  # noqa: S307
+        except SyntaxError:
+            exec(last_line, namespace)  # noqa: S102
+            result = namespace.get("result", namespace.get("answer", "executed"))
+
+        return {"success": True, "result": str(result), "error": ""}
+    except Exception as e:
+        return {"success": False, "result": "", "error": str(e)}
+
+
+def _generate_sympy_code(problem_text: str, topic: str) -> str:
+    """Ask the LLM to translate a math problem into executable SymPy code."""
+    code_raw = _llm(
+        f"""Translate this math problem into Python SymPy code that computes the answer.
+
+PROBLEM: {problem_text}
+TOPIC: {topic}
+
+RULES:
+- Use ONLY these SymPy functions: symbols, solve, diff, integrate, limit, simplify, expand, factor, Matrix, det, Eq, sqrt, Rational, sin, cos, tan, log, exp, factorial, binomial, Sum, Product, series, solveset, trigsimp, apart, together, cancel, nsolve, Abs, pi, E, oo, eye, zeros, FiniteSet, Interval
+- Variables x, y, z, t, n, k, a, b, c are pre-defined as SymPy Symbols.
+- The LAST line must be an expression that evaluates to the final answer.
+- Do NOT import anything. Do NOT use print().
+- Do NOT use os, sys, subprocess, open, eval, exec, __import__, or any I/O.
+- For equations like "x^2 - 5x + 6 = 0", use: solve(x**2 - 5*x + 6, x)
+- For derivatives like "d/dx(x^3 - 3x^2 + 2x)", use: diff(x**3 - 3*x**2 + 2*x, x)
+- For integrals, use: integrate(expr, x) or integrate(expr, (x, a, b))
+- For limits, use: limit(expr, x, value)
+- For probability with fractions, use Rational(num, den).
+- For matrices, use Matrix([[...], [...]]).det() or .inv() etc.
+
+Return ONLY the Python code, no markdown fences, no explanation.""",
+        system=(
+            "You are a SymPy code generator. Convert math problems to executable SymPy Python code. "
+            "Output ONLY valid Python code. No markdown, no comments, no explanation."
+        ),
+        temperature=0.0,
+        model=config.FAST_MODEL,
+        max_tokens=500,
+    ).strip()
+
+    # Strip markdown fences if present
+    if code_raw.startswith("```"):
+        code_raw = code_raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+
+    return code_raw
+
+
+def _sympy_primary_solve(problem_text: str, topic: str) -> dict:
+    """Primary solver: LLM generates SymPy code, we execute it.
+
+    Returns {"success": bool, "sympy_code": str, "result": str, "error": str}.
+    """
+    code = _generate_sympy_code(problem_text, topic)
+    exec_result = _execute_sympy_code(code)
+    return {
+        "success": exec_result["success"],
+        "sympy_code": code,
+        "result": exec_result["result"],
+        "error": exec_result["error"],
+    }
+
+
+def _sympy_self_consistency(problem_text: str, topic: str) -> dict:
+    """Self-consistency: solve twice independently, compare results.
+
+    Returns {"consistent": bool, "result_a": str, "result_b": str,
+             "final_result": str, "code_a": str, "code_b": str}.
+    """
+    # Run A
+    solve_a = _sympy_primary_solve(problem_text, topic)
+    # Run B (second independent attempt)
+    solve_b = _sympy_primary_solve(problem_text, topic)
+
+    result_a = solve_a["result"]
+    result_b = solve_b["result"]
+
+    # Check consistency: compare SymPy results symbolically if possible
+    consistent = False
+    final_result = result_a if solve_a["success"] else result_b
+
+    if solve_a["success"] and solve_b["success"]:
+        try:
+            # Try symbolic comparison
+            sym_a = sympy.sympify(result_a)
+            sym_b = sympy.sympify(result_b)
+            if sympy.simplify(sym_a - sym_b) == 0:
+                consistent = True
+                final_result = result_a
+            elif str(result_a).strip() == str(result_b).strip():
+                consistent = True
+                final_result = result_a
+            else:
+                # Disagreement — use first result but flag it
+                final_result = result_a
+        except Exception:
+            # Fall back to string comparison
+            consistent = str(result_a).strip() == str(result_b).strip()
+            final_result = result_a
+    elif solve_a["success"]:
+        final_result = result_a
+    elif solve_b["success"]:
+        final_result = result_b
+
+    return {
+        "consistent": consistent,
+        "result_a": result_a if solve_a["success"] else f"FAILED: {solve_a['error']}",
+        "result_b": result_b if solve_b["success"] else f"FAILED: {solve_b['error']}",
+        "final_result": final_result,
+        "code_a": solve_a.get("sympy_code", ""),
+        "code_b": solve_b.get("sympy_code", ""),
+        "both_succeeded": solve_a["success"] and solve_b["success"],
+    }
+
+
 # ─── Computational Verification Helpers ──────────────────────
 
 def _verify_by_substitution(problem_text: str, answer: str) -> dict:
@@ -437,7 +617,12 @@ def _sympy_independent_solve(problem_text: str) -> dict:
 
 
 def solver_node(state: MathState) -> dict:
-    """Solve using RAG context + SymPy tools + memory."""
+    """Solve using SymPy as PRIMARY computation engine + RAG context + memory.
+
+    Architecture: LLM parses → SymPy computes → LLM explains.
+    Self-consistency: SymPy solves twice, results are compared.
+    The LLM NEVER solves equations itself — only parses, cites, and explains.
+    """
     parsed = state["parsed"]
     route = state["route"]
     problem_text = parsed["problem_text"]
@@ -466,23 +651,41 @@ def solver_node(state: MathState) -> dict:
         )
 
     # ── Correction patterns ──
-    corrections = get_correction_patterns(topic)
+    correction_patterns = get_correction_patterns(topic)
     corr_ctx = ""
-    if corrections:
+    if correction_patterns:
         corr_ctx = "\nMistakes to avoid:\n" + "\n".join(
-            f"- {c['correction']}" for c in corrections[:3])
+            f"- {c['correction']}" for c in correction_patterns[:3])
 
-    # ── SymPy calculator tool ──
+    # ── PRIMARY SOLVER: SymPy with self-consistency ──
+    consistency = _sympy_self_consistency(problem_text, topic)
+    sympy_answer = consistency["final_result"]
+    sympy_consistent = consistency["consistent"]
+
+    # Also run legacy direct SymPy tools as fallback
     tools_needed = route.get("tools_needed", [])
-    tool_results = ""
+    legacy_tool_results = ""
     if "symbolic_solver" in tools_needed or "calculator" in tools_needed:
         sym_result = _sympy_calculator(problem_text)
         if sym_result:
-            tool_results += f"\n[Calculator Tool]\n{sym_result}\n"
+            legacy_tool_results += f"\n[Calculator Tool]\n{sym_result}\n"
     if "matrix_operations" in tools_needed:
         mat_result = _sympy_matrix_ops(problem_text)
         if mat_result:
-            tool_results += f"\n[Matrix Tool]\n{mat_result}\n"
+            legacy_tool_results += f"\n[Matrix Tool]\n{mat_result}\n"
+
+    # Build SymPy results summary for the LLM
+    sympy_summary = f"""
+[SymPy Primary Solver — AUTHORITATIVE ANSWER]
+Result A: {consistency['result_a']}
+Result B: {consistency['result_b']}
+Self-consistent: {sympy_consistent}
+Final SymPy answer: {sympy_answer}
+Code A:
+{consistency['code_a']}
+Code B:
+{consistency['code_b']}
+"""
 
     # ── Corrections context from parser ──
     corrections = parsed.get("corrections_applied", [])
@@ -493,46 +696,49 @@ def solver_node(state: MathState) -> dict:
             for c in corrections
         )
 
+    # ── LLM role: EXPLAIN the SymPy result (NOT solve it) ──
     result = _llm_json(
         f"""PROBLEM:\n{problem_text}
 
-RELEVANT FORMULAS:\n{context_text or 'None retrieved.'}
-{memory_ctx}{corr_ctx}{tool_results}{corrections_ctx}
+RELEVANT FORMULAS (from knowledge base):\n{context_text or 'None retrieved — state that retrieval found no matching formulas.'}
+{memory_ctx}{corr_ctx}{corrections_ctx}
+
+{sympy_summary}
+{legacy_tool_results}
 
 STRATEGY: {route.get('strategy')}
 TOPIC: {topic}
 
-You are a precise mathematical reasoning engine for JEE-level mathematics.
+IMPORTANT INSTRUCTIONS:
+- The SymPy computation above is the AUTHORITATIVE answer. Do NOT solve the problem yourself.
+- Your job is to EXPLAIN the SymPy result step-by-step, NOT to compute a different answer.
+- Use the final_answer from SymPy as-is. Do NOT override it with your own calculation.
+- Only use formulas that appear in the retrieved context above.
+- If the context does not contain the needed formula, state that retrieval did not find it.
+- Always cite the retrieved source (e.g., "[algebra.md]").
+- If SymPy results are NOT self-consistent, flag this as low confidence.
 
-STRICT REASONING RULES:
-- Preserve original signs and coefficients exactly.
-- Use symbolic reasoning for algebra and calculus.
-- Always verify the final answer (substitution, differentiation rules, bounds check).
-- For quadratic equations, verify solutions by substitution.
-- For derivatives, verify using differentiation rules.
-- For probability, ensure all values remain between 0 and 1.
-- For integrals, verify by differentiating the result.
-
-SOLVE USING THIS STRUCTURE:
-1. Rewrite the clean mathematical problem.
-2. Identify the topic and select the correct formula/method.
-3. Solve step-by-step with mathematical logic.
-4. Verify the result with a secondary check.
+STRUCTURE YOUR RESPONSE:
+1. State the clean mathematical problem.
+2. Cite the relevant formula/method from the retrieved context.
+3. Explain the SymPy solution step-by-step (walk through the code logic).
+4. State the final answer (from SymPy).
+5. Describe how the answer was verified (self-consistency of two SymPy runs).
 
 Return JSON:
 - "corrected_problem": the clean, corrected mathematical expression
-- "solution": complete solution showing all work
+- "solution": complete step-by-step explanation of the SymPy computation
 - "steps": list of step descriptions (each step as a string)
-- "method_used": the mathematical method or formula applied
-- "final_answer": exact mathematical answer
-- "verification": explanation of how the answer was checked
-- "confidence": 0.0 to 1.0""",
+- "method_used": the mathematical method or formula applied (cite source)
+- "final_answer": the SymPy-computed answer (use it exactly)
+- "verification": "Self-consistent: both SymPy runs agree" or describe discrepancy
+- "confidence": 0.0 to 1.0 (high if SymPy consistent, low if not)""",
         system=(
-            "You are an expert JEE math solver and precise mathematical reasoning engine. "
-            "Be rigorous: show all work, verify every answer, and never skip steps. "
-            "For quadratics, substitute solutions back. For derivatives, verify with rules. "
-            "For probability, confirm values are in [0,1]. For equations, check both sides. "
-            "If you cannot solve with certainty, state what is uncertain and why."
+            "You are a math EXPLAINER, not a solver. The SymPy engine has already computed the correct answer. "
+            "Your job is to explain HOW the answer was derived, cite retrieved formulas, and present it clearly. "
+            "NEVER override the SymPy answer with your own computation. "
+            "If retrieval found no relevant formula, say so — do not hallucinate formulas. "
+            "Always cite the source file for any formula you reference."
         ),
         max_tokens=2000,
     )
@@ -542,20 +748,46 @@ Return JSON:
         "solution": "Unable to solve",
         "steps": [],
         "method_used": "",
-        "final_answer": "N/A",
+        "final_answer": sympy_answer or "N/A",
         "verification": "",
         "confidence": 0.5,
     }
     for k, v in defaults.items():
         result.setdefault(k, v)
 
+    # Override final_answer with SymPy result if LLM tried to change it
+    if consistency["both_succeeded"] and sympy_answer:
+        result["final_answer"] = sympy_answer
+
+    # Adjust confidence based on self-consistency
+    try:
+        conf = float(result.get("confidence", 0.5))
+    except (ValueError, TypeError):
+        conf = 0.5
+    if not sympy_consistent:
+        conf = min(conf, 0.5)
+    if consistency["both_succeeded"] and sympy_consistent:
+        conf = max(conf, 0.9)
+    result["confidence"] = conf
+
     result["retrieved_sources"] = [{"source": c["source"], "score": c["score"]} for c in all_chunks[:5]]
-    result["tool_outputs"] = tool_results or None
+    result["tool_outputs"] = sympy_summary + (legacy_tool_results or "")
+    result["sympy_consistency"] = {
+        "consistent": sympy_consistent,
+        "result_a": consistency["result_a"],
+        "result_b": consistency["result_b"],
+    }
+
+    trace_note = f"Answer: {result['final_answer']}, Confidence: {conf}"
+    if sympy_consistent:
+        trace_note += ", SymPy: self-consistent"
+    else:
+        trace_note += ", SymPy: INCONSISTENT (flagged)"
 
     return {
         "solution": result,
         "trace": [{"agent": "Solver", "status": "completed",
-                    "output_summary": f"Answer: {result['final_answer']}, Confidence: {result['confidence']}"}],
+                    "output_summary": trace_note}],
     }
 
 
