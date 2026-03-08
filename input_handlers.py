@@ -1,7 +1,7 @@
 """Multimodal input handling.
 
-Image  : EasyOCR (primary) with per-detection confidence scores.
-         If OCR confidence is low, GPT-4o Vision refines the extraction.
+Image  : Mistral OCR (primary) → EasyOCR (fallback) → GPT-4o Vision (final fallback).
+         Best result is selected based on confidence and content quality.
 Audio  : OpenAI Whisper API.
 Text   : passthrough.
 """
@@ -9,11 +9,14 @@ Text   : passthrough.
 import os
 import json
 import base64
+import logging
 from typing import Tuple
 
 from openai import OpenAI
 
 import config
+
+logger = logging.getLogger(__name__)
 
 # ── lazy-loaded EasyOCR reader (heavy import) ────────────────
 
@@ -32,23 +35,118 @@ def _get_openai() -> OpenAI:
     return OpenAI(api_key=config.OPENAI_API_KEY)
 
 
-# ── Image → Text (EasyOCR + optional GPT-4o refinement) ─────
+# ── Mistral OCR (primary) ────────────────────────────────────
 
-def extract_text_from_image(image_path: str) -> Tuple[str, float]:
-    """Extract math problem text from an image using EasyOCR.
+def _mistral_ocr_extract(image_path: str) -> Tuple[str, float]:
+    """Extract text from image using Mistral OCR API.
 
-    Returns (extracted_text, avg_confidence 0-1).
-    If avg confidence < 0.6 and an OpenAI key is available,
-    GPT-4o Vision is used to refine the OCR output.
+    Returns (extracted_text, confidence 0-1).
     """
-    # --- Step 1: EasyOCR ---
+    from mistralai import Mistral
+
+    client = Mistral(api_key=config.MISTRAL_API_KEY)
+    b64, mime = _encode_image(image_path)
+    data_url = f"data:{mime};base64,{b64}"
+
+    ocr_response = client.ocr.process(
+        model="mistral-ocr-latest",
+        document={
+            "type": "image_url",
+            "image_url": data_url,
+        },
+        include_image_base64=False,
+    )
+
+    # Combine markdown from all pages
+    all_text = []
+    for page in ocr_response.pages:
+        if page.markdown and page.markdown.strip():
+            all_text.append(page.markdown.strip())
+
+    combined = "\n".join(all_text).strip()
+    if not combined:
+        return "", 0.0
+
+    # Clean up markdown artifacts for math usage
+    combined = _postprocess_mistral_math(combined)
+
+    # Mistral OCR is high quality; assign confidence based on content
+    confidence = 0.95 if len(combined) > 5 else 0.6
+    return combined, confidence
+
+
+def _postprocess_mistral_math(text: str) -> str:
+    """Clean Mistral OCR markdown output for math problem usage."""
+    import re as _re
+
+    result = text
+
+    # Remove markdown image placeholders
+    result = _re.sub(r'!\[.*?\]\(.*?\)', '', result)
+    # Remove markdown bold/italic but keep content
+    result = result.replace('**', '').replace('__', '')
+    # Normalize LaTeX-style fractions: \frac{a}{b} → (a)/(b)
+    result = _re.sub(r'\\frac\{([^}]*)\}\{([^}]*)\}', r'(\1)/(\2)', result)
+    # Normalize common LaTeX: \sqrt{x} → sqrt(x)
+    result = _re.sub(r'\\sqrt\{([^}]*)\}', r'sqrt(\1)', result)
+    # Remove \left and \right
+    result = result.replace('\\left', '').replace('\\right', '')
+    # Convert LaTeX superscript: x^{2} → x^2
+    result = _re.sub(r'\^\{([^}]*)\}', r'^\1', result)
+    # Convert LaTeX subscript: x_{i} → x_i
+    result = _re.sub(r'_\{([^}]*)\}', r'_\1', result)
+    # Remove remaining backslash commands but keep the text: \text{abc} → abc
+    result = _re.sub(r'\\(?:text|mathrm|mathbf)\{([^}]*)\}', r'\1', result)
+    # Remove dollar signs (inline math)
+    result = result.replace('$', '')
+    # Remove stray backslashes before common symbols
+    result = _re.sub(r'\\([+\-*/=(){}])', r'\1', result)
+    # Normalize minus signs and dashes
+    result = result.replace('—', '-').replace('–', '-').replace('−', '-')
+    # Collapse multiple spaces and blank lines
+    result = _re.sub(r' +', ' ', result)
+    result = _re.sub(r'\n{3,}', '\n\n', result)
+
+    return result.strip()
+
+
+# ── EasyOCR (fallback) ───────────────────────────────────────
+
+def _has_math_symbols(text: str) -> bool:
+    """Check if text contains math notation that EasyOCR often misreads."""
+    import re as _re
+    return bool(_re.search(r'[\^=+\-*/]|x\d|\d[a-zA-Z]', text))
+
+
+def _postprocess_ocr_math(text: str) -> str:
+    """Clean up common EasyOCR artifacts in math expressions."""
+    import re as _re
+    result = text
+
+    # Fix common EasyOCR misreads of math symbols
+    result = result.replace('}{', ')(')  # curly braces → parens
+    result = result.replace('{', '(').replace('}', ')')
+    result = result.replace('|', '1')  # pipe often misread for 1 in equations
+
+    # Normalize minus signs and dashes
+    result = result.replace('—', '-').replace('–', '-').replace('−', '-')
+
+    # Fix spaces around = sign
+    result = _re.sub(r'=(?=\S)', '= ', result)
+    result = _re.sub(r'(?<=\S)=', ' =', result)
+
+    # Collapse multiple spaces
+    result = _re.sub(r' +', ' ', result).strip()
+
+    return result
+
+
+def _easyocr_extract(image_path: str) -> Tuple[str, float]:
+    """Extract text using EasyOCR. Returns (text, confidence)."""
     reader = _get_ocr_reader()
     detections = reader.readtext(image_path)
 
     if not detections:
-        # No text detected at all – fall back to GPT-4o Vision directly
-        if config.OPENAI_API_KEY:
-            return _gpt4o_vision_extract(image_path)
         return "", 0.0
 
     texts = []
@@ -59,14 +157,71 @@ def extract_text_from_image(image_path: str) -> Tuple[str, float]:
 
     ocr_text = " ".join(texts)
     avg_confidence = sum(confidences) / len(confidences)
-
-    # --- Step 2: If low confidence, refine with GPT-4o Vision ---
-    if avg_confidence < 0.6 and config.OPENAI_API_KEY:
-        refined_text, refined_conf = _gpt4o_vision_refine(image_path, ocr_text)
-        if refined_text:
-            return refined_text, refined_conf
+    ocr_text = _postprocess_ocr_math(ocr_text)
 
     return ocr_text, round(avg_confidence, 3)
+
+
+# ── Main OCR pipeline: Mistral → EasyOCR → GPT-4o ───────────
+
+def extract_text_from_image(image_path: str) -> Tuple[str, float]:
+    """Extract math problem text from an image using a 3-tier OCR pipeline.
+
+    Pipeline order:
+    1. Mistral OCR (best for structured math, LaTeX, complex layouts)
+    2. EasyOCR (fallback if Mistral fails)
+    3. GPT-4o Vision (final fallback, uses vision model to read image)
+
+    Returns (extracted_text, confidence 0-1).
+    """
+    ocr_source = None
+
+    # --- Tier 1: Mistral OCR ---
+    if config.MISTRAL_API_KEY:
+        try:
+            text, conf = _mistral_ocr_extract(image_path)
+            if text and len(text.strip()) > 2:
+                logger.info(f"Mistral OCR succeeded (confidence={conf})")
+                ocr_source = "mistral"
+                return text, conf
+            logger.warning("Mistral OCR returned empty/short text, trying EasyOCR")
+        except Exception as e:
+            logger.warning(f"Mistral OCR failed: {e}, falling back to EasyOCR")
+
+    # --- Tier 2: EasyOCR ---
+    try:
+        text, conf = _easyocr_extract(image_path)
+        if text and len(text.strip()) > 2:
+            logger.info(f"EasyOCR succeeded (confidence={conf})")
+            ocr_source = "easyocr"
+
+            # If EasyOCR confidence is decent, return as-is
+            # If low confidence + math symbols, try GPT-4o refinement
+            needs_refinement = (
+                (conf < 0.8 and _has_math_symbols(text))
+                or conf < 0.6
+            )
+            if needs_refinement and config.OPENAI_API_KEY:
+                refined_text, refined_conf = _gpt4o_vision_refine(image_path, text)
+                if refined_text:
+                    return refined_text, refined_conf
+
+            return text, conf
+        logger.warning("EasyOCR returned empty/short text, trying GPT-4o Vision")
+    except Exception as e:
+        logger.warning(f"EasyOCR failed: {e}, falling back to GPT-4o Vision")
+
+    # --- Tier 3: GPT-4o Vision (pure extraction) ---
+    if config.OPENAI_API_KEY:
+        try:
+            text, conf = _gpt4o_vision_extract(image_path)
+            if text:
+                logger.info(f"GPT-4o Vision succeeded (confidence={conf})")
+                return text, conf
+        except Exception as e:
+            logger.error(f"GPT-4o Vision also failed: {e}")
+
+    return "", 0.0
 
 
 def _gpt4o_vision_extract(image_path: str) -> Tuple[str, float]:
@@ -112,7 +267,13 @@ def _gpt4o_vision_refine(image_path: str, ocr_text: str) -> Tuple[str, float]:
                 "content": (
                     "You are a math OCR expert. The OCR engine produced the text below "
                     "but with LOW confidence. Look at the image and return a corrected "
-                    "version of the math problem.\n"
+                    "version of the math problem.\n\n"
+                    "CRITICAL RULES:\n"
+                    "- Read EVERY digit, coefficient, and exponent directly from the image.\n"
+                    "- Do NOT guess or 'fix' coefficients — copy them exactly as written.\n"
+                    "- Pay special attention to: exponents (^2, ^3), minus vs plus signs, "
+                    "multi-digit numbers (36 vs 6, 13 vs 3), and coefficients before variables.\n"
+                    "- Use standard notation: x^2 for x squared, * for multiplication.\n\n"
                     'Return ONLY JSON: {"text": "...", "confidence": 0.0-1.0}. '
                     "No markdown fences."
                 ),
@@ -160,8 +321,11 @@ def _parse_vision_json(raw: str) -> Tuple[str, float]:
 MATH_TRANSCRIPTION_PROMPT = (
     "The speaker is describing a math problem. "
     "Transcribe exactly, preserving all numbers, variables, operators, and equations. "
+    "Pay very careful attention to multi-digit numbers like 36, 25, 144 — do not drop digits. "
+    "Use standard notation: x^2 for 'x squared', x^3 for 'x cubed', sqrt() for square root. "
     "Common terms: integral, derivative, limit, matrix, determinant, eigenvalue, "
-    "probability, factorial, sigma, pi, theta, sqrt, log, ln, sin, cos, tan."
+    "probability, factorial, sigma, pi, theta, sqrt, log, ln, sin, cos, tan. "
+    "Example equations: x^2 - 5x + 6 = 0, 3x^2 - 13x + 36 = 0, P(A|B) = 1/2."
 )
 
 
@@ -189,29 +353,51 @@ def transcribe_audio(audio_path: str) -> Tuple[str, float]:
 
 
 def _postprocess_math_transcript(text: str) -> str:
-    """Replace spoken math phrases with symbolic equivalents."""
+    """Replace spoken math phrases with symbolic equivalents.
+
+    Handles:
+    - Spoken operators and relations ("plus" → "+", "equals" → "=")
+    - Spoken exponents ("x square" → "x^2", "x cube" → "x^3")
+    - Transcription artifacts ("= to 0" → "= 0", "equal to" → "=")
+    """
+    import re as _re
+
+    # Longer phrases first to avoid partial matches
     replacements = {
         "square root of": "sqrt(",
-        "squared": "^2",
-        "cubed": "^3",
-        "raised to the power": "^",
-        "raised to": "^",
-        "to the power of": "^",
-        "divided by": "/",
-        "multiplied by": "*",
-        "times": "*",
-        "plus": "+",
-        "minus": "-",
-        "equals": "=",
         "is equal to": "=",
+        "equal to": "=",
         "greater than or equal to": ">=",
         "less than or equal to": "<=",
         "greater than": ">",
         "less than": "<",
+        "raised to the power of": "^",
+        "raised to the power": "^",
+        "to the power of": "^",
+        "raised to": "^",
+        "divided by": "/",
+        "multiplied by": "*",
+        "squared": "^2",
+        "cubed": "^3",
+        "times": "*",
+        "plus": "+",
+        "minus": "-",
+        "equals": "=",
     }
     result = text
     for phrase, replacement in replacements.items():
         result = result.replace(phrase, replacement)
+
+    # Fix spoken exponents: "x square" → "x^2", "x cube" → "x^3"
+    result = _re.sub(r'(\b[a-zA-Z])\s+square\b', r'\1^2', result, flags=_re.IGNORECASE)
+    result = _re.sub(r'(\b[a-zA-Z])\s+cube\b', r'\1^3', result, flags=_re.IGNORECASE)
+
+    # Fix "= to" artifact: "= to 0" → "= 0" (common Whisper mishearing)
+    result = _re.sub(r'=\s*to\s+', '= ', result)
+
+    # Fix "where" before variable: "where x^2" → "x^2" (sometimes Whisper adds context words)
+    result = _re.sub(r'\bwhere\s+', '', result, flags=_re.IGNORECASE)
+
     return result
 
 

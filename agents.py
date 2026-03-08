@@ -13,10 +13,11 @@ from __future__ import annotations
 
 import json
 import re
+import time
 import operator
 from typing import Annotated, TypedDict, Literal
 
-import multiprocessing
+import threading
 import sympy
 from openai import OpenAI
 from langgraph.graph import StateGraph, END
@@ -38,6 +39,10 @@ def _get_client() -> OpenAI:
     return _openai_client
 
 
+_LLM_MAX_RETRIES = 3
+_LLM_RETRY_DELAYS = [1, 3, 7]  # seconds — exponential-ish backoff
+
+
 def _llm(prompt: str, system: str = "", temperature: float = 0.3,
           model: str | None = None, max_tokens: int = 2048) -> str:
     client = _get_client()
@@ -45,13 +50,22 @@ def _llm(prompt: str, system: str = "", temperature: float = 0.3,
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
-    resp = client.chat.completions.create(
-        model=model or config.LLM_MODEL,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
-    return resp.choices[0].message.content
+
+    last_error = None
+    for attempt in range(_LLM_MAX_RETRIES):
+        try:
+            resp = client.chat.completions.create(
+                model=model or config.LLM_MODEL,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            return resp.choices[0].message.content
+        except Exception as e:
+            last_error = e
+            if attempt < _LLM_MAX_RETRIES - 1:
+                time.sleep(_LLM_RETRY_DELAYS[attempt])
+    raise RuntimeError(f"OpenAI API failed after {_LLM_MAX_RETRIES} retries: {last_error}")
 
 
 def _llm_json(prompt: str, system: str = "", model: str | None = None,
@@ -196,11 +210,16 @@ def clean_math_text(text: str) -> str:
     """
     result = text
 
-    # Fix exponent notation: x2 → x^2, 3x2 → 3x^2, x3 → x^3
-    # Only when a single letter is followed by a single digit (not part of a word)
-    result = re.sub(r'(?<=[a-zA-Z])(\d)(?!\d)', r'^{\1}', result)
-    # Simplify x^{2} to x^2 for single digits
-    result = re.sub(r'\^\{(\d)\}', r'^\1', result)
+    # Fix spoken exponents that survived transcription: "x square" → "x^2", "x cube" → "x^3"
+    result = re.sub(r'(\b[a-zA-Z])\s+square\b', r'\1^2', result, flags=re.IGNORECASE)
+    result = re.sub(r'(\b[a-zA-Z])\s+cube\b', r'\1^3', result, flags=re.IGNORECASE)
+
+    # Fix "= to" transcription artifact: "= to 0" → "= 0"
+    result = re.sub(r'=\s*to\s+', '= ', result)
+
+    # Fix exponent notation: x2 → x^2, y3 → y^3
+    # ONLY for single-letter variables (a-z) — avoids corrupting log2, sin3, det, etc.
+    result = re.sub(r'(?<![a-zA-Z])([a-zA-Z])(\d)(?!\d|[a-zA-Z])', r'\1^\2', result)
 
     # Normalize spacing around operators: 5x+6 → 5x + 6, x^2-5x → x^2 - 5x
     result = re.sub(r'(?<=\w)([+\-])(?=\w)', r' \1 ', result)
@@ -568,57 +587,54 @@ _SYMPY_SAFE_NAMESPACE = {
 _SYMPY_EXEC_TIMEOUT = 10  # seconds
 
 
-def _run_sympy_in_process(code: str, result_queue: multiprocessing.Queue) -> None:
-    """Target function for subprocess execution of SymPy code."""
-    namespace = dict(_SYMPY_SAFE_NAMESPACE)
-    namespace["__builtins__"] = {"range": range, "len": len, "list": list,
-                                  "tuple": tuple, "dict": dict, "set": set,
-                                  "int": int, "float": float, "str": str,
-                                  "bool": bool, "True": True, "False": False,
-                                  "None": None, "abs": sympy.Abs,
-                                  "sum": sum, "min": min, "max": max,
-                                  "round": round, "enumerate": enumerate,
-                                  "zip": zip, "map": map, "pow": pow}
-    try:
-        lines = code.strip().split("\n")
-        exec_block = "\n".join(lines[:-1]) if len(lines) > 1 else ""
-        last_line = lines[-1].strip()
-
-        if exec_block:
-            exec(exec_block, namespace)  # noqa: S102
-
-        try:
-            result = eval(last_line, namespace)  # noqa: S307
-        except SyntaxError:
-            exec(last_line, namespace)  # noqa: S102
-            result = namespace.get("result", namespace.get("answer", "executed"))
-
-        result_queue.put({"success": True, "result": str(result), "error": ""})
-    except Exception as e:
-        result_queue.put({"success": False, "result": "", "error": str(e)})
-
-
 def _execute_sympy_code(code: str) -> dict:
     """Safely execute LLM-generated SymPy code with a timeout.
 
     Returns {"success": bool, "result": str, "error": str}.
-    Kills execution after _SYMPY_EXEC_TIMEOUT seconds to prevent infinite loops.
+    Uses a thread with a timeout instead of multiprocessing to avoid
+    Windows spawn overhead (reimporting sympy/openai in a new process).
     """
-    result_queue: multiprocessing.Queue = multiprocessing.Queue()
-    proc = multiprocessing.Process(
-        target=_run_sympy_in_process, args=(code, result_queue)
-    )
-    proc.start()
-    proc.join(timeout=_SYMPY_EXEC_TIMEOUT)
+    result_holder: dict = {"success": False, "result": "", "error": "execution_timeout"}
 
-    if proc.is_alive():
-        proc.terminate()
-        proc.join(timeout=1)
-        return {"success": False, "result": "", "error": "execution_timeout"}
+    def _run():
+        namespace = dict(_SYMPY_SAFE_NAMESPACE)
+        namespace["__builtins__"] = {
+            "range": range, "len": len, "list": list,
+            "tuple": tuple, "dict": dict, "set": set,
+            "int": int, "float": float, "str": str,
+            "bool": bool, "True": True, "False": False,
+            "None": None, "abs": sympy.Abs,
+            "sum": sum, "min": min, "max": max,
+            "round": round, "enumerate": enumerate,
+            "zip": zip, "map": map, "pow": pow,
+        }
+        try:
+            lines = code.strip().split("\n")
+            exec_block = "\n".join(lines[:-1]) if len(lines) > 1 else ""
+            last_line = lines[-1].strip()
 
-    if not result_queue.empty():
-        return result_queue.get()
-    return {"success": False, "result": "", "error": "no_result_returned"}
+            if exec_block:
+                exec(exec_block, namespace)  # noqa: S102
+
+            try:
+                res = eval(last_line, namespace)  # noqa: S307
+            except SyntaxError:
+                exec(last_line, namespace)  # noqa: S102
+                res = namespace.get("result", namespace.get("answer", "executed"))
+
+            result_holder["success"] = True
+            result_holder["result"] = str(res)
+            result_holder["error"] = ""
+        except Exception as e:
+            result_holder["success"] = False
+            result_holder["result"] = ""
+            result_holder["error"] = str(e)
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    thread.join(timeout=_SYMPY_EXEC_TIMEOUT)
+
+    return result_holder
 
 
 _TOPIC_SYMPY_EXAMPLES: dict[str, str] = {
@@ -742,47 +758,54 @@ def _sympy_primary_solve(problem_text: str, topic: str) -> dict:
 def _sympy_self_consistency(problem_text: str, topic: str) -> dict:
     """Self-consistency: solve twice independently, compare results.
 
+    Optimization: only runs B if A succeeds (no point running B when A already failed).
+
     Returns {"consistent": bool, "result_a": str, "result_b": str,
              "final_result": str, "code_a": str, "code_b": str}.
     """
     # Run A
     solve_a = _sympy_primary_solve(problem_text, topic)
-    # Run B (second independent attempt)
-    solve_b = _sympy_primary_solve(problem_text, topic)
-
     result_a = solve_a["result"]
+
+    # Skip Run B entirely if Run A failed — saves time and an LLM call
+    if not solve_a["success"]:
+        return {
+            "consistent": False,
+            "result_a": f"FAILED: {solve_a['error']}",
+            "result_b": "SKIPPED (Run A failed)",
+            "final_result": "",
+            "code_a": solve_a.get("sympy_code", ""),
+            "code_b": "",
+            "both_succeeded": False,
+        }
+
+    # Run B (second independent attempt for confirmation)
+    solve_b = _sympy_primary_solve(problem_text, topic)
     result_b = solve_b["result"]
 
-    # Check consistency: compare SymPy results symbolically if possible
     consistent = False
-    final_result = result_a if solve_a["success"] else result_b
+    final_result = result_a
 
-    if solve_a["success"] and solve_b["success"]:
+    if solve_b["success"]:
         try:
             # Try symbolic comparison
             sym_a = sympy.sympify(result_a)
             sym_b = sympy.sympify(result_b)
             if sympy.simplify(sym_a - sym_b) == 0:
                 consistent = True
-                final_result = result_a
             elif str(result_a).strip() == str(result_b).strip():
                 consistent = True
-                final_result = result_a
-            else:
-                # Disagreement — use first result but flag it
-                final_result = result_a
+            # else: disagreement — use first result but flag it
         except Exception:
             # Fall back to string comparison
             consistent = str(result_a).strip() == str(result_b).strip()
-            final_result = result_a
-    elif solve_a["success"]:
+    else:
+        # A succeeded but B failed — trust A, mark inconsistent
         final_result = result_a
-    elif solve_b["success"]:
-        final_result = result_b
 
     return {
         "consistent": consistent,
-        "result_a": result_a if solve_a["success"] else f"FAILED: {solve_a['error']}",
+        "result_a": result_a,
         "result_b": result_b if solve_b["success"] else f"FAILED: {solve_b['error']}",
         "final_result": final_result,
         "code_a": solve_a.get("sympy_code", ""),
@@ -968,6 +991,88 @@ def _verify_integral(problem_text: str, answer: str) -> dict:
     return result
 
 
+def _verify_calculus_domain(problem_text: str, answer: str) -> dict:
+    """Check for domain violations in calculus problems.
+
+    Detects singularities, vertical asymptotes, or undefined points within
+    the integration/limit interval that could invalidate the result.
+    """
+    result = {"check": "calculus_domain", "result": "skip", "detail": "Not applicable"}
+    try:
+        x = sympy.Symbol("x")
+
+        # ── Definite integrals: check for singularities inside [a, b] ──
+        int_match = re.search(
+            r"(?:integrate|integral)\s*(?:of\s+)?(.+?)\s+from\s+(-?\w+)\s+to\s+(-?\w+)",
+            problem_text, re.IGNORECASE,
+        )
+        if not int_match:
+            # Also try "integrate(expr, (x, a, b))" style
+            int_match = re.search(
+                r"(?:integrate|integral)\s*(?:of\s+)?(.+?)(?:\s*,\s*\(\s*x\s*,\s*(-?\w+)\s*,\s*(-?\w+)\s*\))",
+                problem_text, re.IGNORECASE,
+            )
+        if int_match:
+            expr_str = int_match.group(1).strip().rstrip(",")
+            lower_str = int_match.group(2).strip()
+            upper_str = int_match.group(3).strip()
+
+            expr = sympy.sympify(expr_str)
+            lower = sympy.sympify(lower_str)
+            upper = sympy.sympify(upper_str)
+
+            # Find singularities (poles) of the integrand
+            singularities = sympy.singularities(expr, x)
+            issues = []
+            for s in singularities:
+                if s.is_real and lower <= s <= upper:
+                    issues.append(f"singularity at x={s} inside [{lower}, {upper}]")
+
+            if issues:
+                result["result"] = "fail"
+                result["detail"] = (
+                    f"Domain violation: {'; '.join(issues)}. "
+                    "The integral may be improper and require limit-based evaluation."
+                )
+            else:
+                result["result"] = "pass"
+                result["detail"] = "No singularities found inside the integration interval"
+            return result
+
+        # ── Limits: check if the expression is defined at the limit point ──
+        lim_match = re.search(
+            r"limit\s*(?:of\s+)?(.+?)\s+as\s+x\s*(?:->|→|approaches)\s*(-?\w+)",
+            problem_text, re.IGNORECASE,
+        )
+        if lim_match:
+            expr_str = lim_match.group(1).strip()
+            point_str = lim_match.group(2).strip()
+
+            expr = sympy.sympify(expr_str)
+            point = sympy.sympify(point_str)
+
+            # Check if it's an indeterminate form (0/0 or inf/inf)
+            try:
+                direct_val = expr.subs(x, point)
+                if direct_val.has(sympy.zoo, sympy.nan, sympy.oo, sympy.S.NegativeInfinity):
+                    result["result"] = "pass"
+                    result["detail"] = (
+                        f"Indeterminate/undefined form at x={point} — "
+                        "limit evaluation required (e.g., L'Hopital's Rule)"
+                    )
+                else:
+                    result["result"] = "pass"
+                    result["detail"] = f"Expression is defined at x={point}, direct substitution valid"
+            except Exception:
+                result["result"] = "pass"
+                result["detail"] = f"Could not directly evaluate at x={point}, limit approach needed"
+            return result
+
+    except Exception as e:
+        result["detail"] = f"Could not verify calculus domain: {e}"
+    return result
+
+
 def _sympy_independent_solve(problem_text: str, topic: str = "other") -> dict:
     """Attempt to independently solve the problem with SymPy and return the result.
 
@@ -1098,7 +1203,7 @@ def solver_node(state: MathState) -> dict:
     all_chunks: list[dict] = []
     seen: set[str] = set()
     for q in rag_queries:
-        for chunk in retrieve(q, top_k=3):
+        for chunk in retrieve(q, top_k=3, topic=topic or None):
             if chunk["text"] not in seen:
                 seen.add(chunk["text"])
                 all_chunks.append(chunk)
@@ -1161,9 +1266,12 @@ Code B:
             for c in corrections
         )
 
-    # ── LLM role: EXPLAIN the SymPy result (NOT solve it) ──
-    result = _llm_json(
-        f"""PROBLEM:\n{problem_text}
+    # ── Choose LLM role based on whether SymPy succeeded ──
+    sympy_succeeded = consistency["both_succeeded"] and bool(sympy_answer)
+
+    if sympy_succeeded:
+        # SymPy worked — LLM role is EXPLAINER only
+        solver_prompt = f"""PROBLEM:\n{problem_text}
 
 RELEVANT FORMULAS (from knowledge base):\n{context_text or 'None retrieved — state that retrieval found no matching formulas.'}
 {memory_ctx}{corr_ctx}{corrections_ctx}
@@ -1199,14 +1307,54 @@ Return JSON:
 - "method_used": the mathematical method or formula applied (cite source)
 - "final_answer": the SymPy-computed answer (use it exactly)
 - "verification": "Self-consistent: both SymPy runs agree" or describe discrepancy
-- "confidence": 0.0 to 1.0 (high if SymPy consistent, low if not)""",
-        system=(
+- "confidence": 0.0 to 1.0 (high if SymPy consistent, low if not)"""
+        solver_system = (
             "You are a math EXPLAINER, not a solver. The SymPy engine has already computed the correct answer. "
             "Your job is to explain HOW the answer was derived, cite retrieved formulas, and present it clearly. "
             "NEVER override the SymPy answer with your own computation. "
             "If retrieval found no relevant formula, say so — do not hallucinate formulas. "
             "Always cite the source file for any formula you reference."
-        ),
+        )
+    else:
+        # SymPy FAILED — LLM must solve the problem itself as fallback
+        solver_prompt = f"""PROBLEM:\n{problem_text}
+
+RELEVANT FORMULAS (from knowledge base):\n{context_text or 'None retrieved.'}
+{memory_ctx}{corr_ctx}{corrections_ctx}
+
+NOTE: The SymPy symbolic solver FAILED to compute a result for this problem.
+You must solve the problem yourself step-by-step.
+{sympy_summary}
+{legacy_tool_results}
+
+STRATEGY: {route.get('strategy')}
+TOPIC: {topic}
+
+INSTRUCTIONS:
+- Solve the problem yourself step-by-step using proper mathematical methods.
+- Use formulas from the retrieved context above where applicable. Cite them (e.g., "[algebra.md]").
+- Show ALL work — every algebraic step, substitution, and simplification.
+- Double-check your arithmetic before stating the final answer.
+- Be explicit about the method used (e.g., quadratic formula, integration by parts, Bayes' theorem).
+
+Return JSON:
+- "corrected_problem": the clean, corrected mathematical expression
+- "solution": complete step-by-step solution with all work shown
+- "steps": list of step descriptions (each step as a string)
+- "method_used": the mathematical method or formula applied (cite source)
+- "final_answer": the computed answer
+- "verification": describe how you verified the answer (e.g., substitution back into equation)
+- "confidence": 0.0 to 1.0 (your confidence in the answer)"""
+        solver_system = (
+            "You are an expert math solver for JEE-level problems. The symbolic engine failed, "
+            "so you must solve this problem yourself with rigorous step-by-step work. "
+            "Show all work. Double-check arithmetic. Cite retrieved formulas by source file name. "
+            "If retrieval found no relevant formula, say so — do not hallucinate."
+        )
+
+    result = _llm_json(
+        solver_prompt,
+        system=solver_system,
         max_tokens=2000,
     )
 
@@ -1305,6 +1453,12 @@ def verifier_node(state: MathState) -> dict:
         integral_result = _verify_integral(problem_text, final_answer)
         if integral_result["result"] != "skip":
             comp_checks.append(integral_result)
+
+    # Calculus domain check (singularities, asymptotes)
+    if topic == "calculus":
+        domain_result = _verify_calculus_domain(problem_text, final_answer)
+        if domain_result["result"] != "skip":
+            comp_checks.append(domain_result)
 
     # Probability bounds check
     if topic == "probability" or "probab" in problem_text.lower():

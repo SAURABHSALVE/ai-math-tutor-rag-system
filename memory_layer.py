@@ -1,10 +1,12 @@
-"""Memory & Self-Learning Layer using SQLite + JSON."""
+"""Memory & Self-Learning Layer using SQLite + JSON + OpenAI Embeddings."""
 
-import os
 import json
 import sqlite3
 import time
-from typing import List, Optional
+import numpy as np
+from typing import List
+
+from openai import OpenAI
 
 import config
 
@@ -94,8 +96,35 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
     return d
 
 
+def _get_embedding(text: str) -> List[float]:
+    """Get embedding vector for a text string using OpenAI."""
+    try:
+        client = OpenAI(api_key=config.OPENAI_API_KEY)
+        resp = client.embeddings.create(
+            model=config.EMBEDDING_MODEL,
+            input=text[:2000],  # truncate to avoid token limits
+        )
+        return resp.data[0].embedding
+    except Exception:
+        return []
+
+
+def _cosine_similarity(a: List[float], b: List[float]) -> float:
+    """Compute cosine similarity between two vectors."""
+    a_arr = np.array(a)
+    b_arr = np.array(b)
+    dot = np.dot(a_arr, b_arr)
+    norm = np.linalg.norm(a_arr) * np.linalg.norm(b_arr)
+    if norm == 0:
+        return 0.0
+    return float(dot / norm)
+
+
 def retrieve_similar(query: str, topic: str = "", top_k: int = 3) -> List[dict]:
-    """Retrieve similar previously solved problems using keyword overlap."""
+    """Retrieve similar previously solved problems using embedding similarity.
+
+    Falls back to keyword overlap if embedding fails (e.g., no API key).
+    """
     conn = _get_conn()
     rows = conn.execute("SELECT * FROM solved_problems ORDER BY timestamp DESC").fetchall()
     conn.close()
@@ -103,9 +132,31 @@ def retrieve_similar(query: str, topic: str = "", top_k: int = 3) -> List[dict]:
     if not rows:
         return []
 
+    # Try embedding-based similarity first
+    query_emb = _get_embedding(query)
+    if query_emb:
+        scored = []
+        for row in rows:
+            d = _row_to_dict(row)
+            parsed = d.get("parsed_question", "")
+            if not parsed:
+                continue
+            mem_emb = _get_embedding(parsed)
+            if not mem_emb:
+                continue
+            sim = _cosine_similarity(query_emb, mem_emb)
+            # Boost topic matches and user-confirmed correct answers
+            topic_bonus = 0.1 if topic and d.get("topic", "").lower() == topic.lower() else 0
+            feedback_bonus = 0.05 if d.get("user_feedback") == "correct" else 0
+            final_score = sim + topic_bonus + feedback_bonus
+            scored.append((final_score, d))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        # Only return results with meaningful similarity (> 0.7)
+        return [item[1] for item in scored[:top_k] if item[0] > 0.7]
+
+    # Fallback: keyword overlap (when embeddings unavailable)
     query_words = set(query.lower().split())
     scored = []
-
     for row in rows:
         d = _row_to_dict(row)
         parsed = d.get("parsed_question", "").lower()
@@ -116,7 +167,6 @@ def retrieve_similar(query: str, topic: str = "", top_k: int = 3) -> List[dict]:
         score = overlap + topic_bonus + feedback_bonus
         if score > 0:
             scored.append((score, d))
-
     scored.sort(key=lambda x: x[0], reverse=True)
     return [item[1] for item in scored[:top_k]]
 

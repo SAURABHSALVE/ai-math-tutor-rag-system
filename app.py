@@ -126,9 +126,9 @@ elif input_mode == "Image":
     if not uploaded_image and st.session_state.get("_sample_image_path"):
         image_path = st.session_state["_sample_image_path"]
         st.image(image_path, caption="Sample Math Image", use_container_width=True)
-        if st.button("Extract Text from Sample (EasyOCR)") or st.session_state.extracted_text:
+        if st.button("Extract Text from Sample") or st.session_state.extracted_text:
             if not st.session_state.extracted_text:
-                with st.spinner("Running EasyOCR (+ GPT-4o refinement if low confidence)..."):
+                with st.spinner("Running OCR pipeline (Mistral → EasyOCR → GPT-4o)..."):
                     extracted, confidence = extract_text_from_image(image_path)
                     st.session_state.extracted_text = extracted
                     st.session_state.extraction_confidence = confidence
@@ -150,9 +150,9 @@ elif input_mode == "Image":
 
         image_path = save_uploaded_file(uploaded_image, config.UPLOADS_DIR)
 
-        if st.button("Extract Text (EasyOCR)") or st.session_state.extracted_text:
+        if st.button("Extract Text (OCR)") or st.session_state.extracted_text:
             if not st.session_state.extracted_text:
-                with st.spinner("Running EasyOCR (+ GPT-4o refinement if low confidence)..."):
+                with st.spinner("Running OCR pipeline (Mistral → EasyOCR → GPT-4o)..."):
                     extracted, confidence = extract_text_from_image(image_path)
                     st.session_state.extracted_text = extracted
                     st.session_state.extraction_confidence = confidence
@@ -410,8 +410,20 @@ if result:
             except (ValueError, TypeError):
                 verifier_conf = 0.5
 
-            avg_conf = (solver_conf + verifier_conf) / 2
-            st.progress(min(avg_conf, 1.0))
+            # Smart confidence: if all verification steps pass, trust the verifier
+            # rather than penalizing with a low solver confidence from SymPy timeouts
+            verif_steps_list = result["verification"].get("verification_steps", [])
+            all_verif_passed = (
+                verif_steps_list
+                and all(v.get("result") == "pass" for v in verif_steps_list)
+            )
+            if all_verif_passed and verifier_conf >= 0.9:
+                # Verifier independently confirmed — weight it heavily
+                avg_conf = verifier_conf * 0.8 + solver_conf * 0.2
+            else:
+                avg_conf = (solver_conf + verifier_conf) / 2
+            avg_conf = min(avg_conf, 1.0)
+            st.progress(avg_conf)
 
             if avg_conf >= 0.8:
                 st.markdown(f'<span class="confidence-high">Overall: {avg_conf:.0%}</span>', unsafe_allow_html=True)
@@ -513,7 +525,7 @@ if st.session_state.result:
 st.divider()
 st.markdown(
     '<div style="text-align:center;color:#888;font-size:.85rem;">'
-    'Math Mentor v3.0 | SymPy-first Solver + Self-Consistency + GPT-4o + LangGraph + RAG + HITL'
+    'Math Mentor v3.1 | Mistral OCR + SymPy Solver + GPT-4o + LangGraph + RAG + HITL'
     '</div>',
     unsafe_allow_html=True,
 )

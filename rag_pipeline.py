@@ -72,11 +72,43 @@ def load_vector_store() -> FAISS:
     )
 
 
-def retrieve(query: str, top_k: int = None) -> List[dict]:
-    """Retrieve top-k relevant chunks for a query."""
+_cached_vectorstore: FAISS | None = None
+
+
+def get_vector_store() -> FAISS:
+    """Return the cached FAISS vector store, loading/building once."""
+    global _cached_vectorstore
+    if _cached_vectorstore is None:
+        _cached_vectorstore = load_vector_store()
+    return _cached_vectorstore
+
+
+def retrieve(query: str, top_k: int = None, topic: str = None) -> List[dict]:
+    """Retrieve top-k relevant chunks for a query.
+
+    If *topic* is provided, results from matching topic files are boosted
+    by fetching extra candidates and prioritising those whose metadata
+    ``topic`` tag matches.
+    """
     top_k = top_k or config.TOP_K_RETRIEVAL
-    vectorstore = load_vector_store()
-    results = vectorstore.similarity_search_with_score(query, k=top_k)
+    vectorstore = get_vector_store()
+
+    if topic:
+        # Fetch extra candidates so we can prioritise topic-matched chunks
+        fetch_k = top_k * 3
+        results = vectorstore.similarity_search_with_score(query, k=fetch_k)
+        # Partition into topic-matched and others
+        matched = []
+        rest = []
+        for doc, score in results:
+            if doc.metadata.get("topic") == topic:
+                matched.append((doc, score))
+            else:
+                rest.append((doc, score))
+        # Take topic-matched first, then fill remaining slots with others
+        results = (matched + rest)[:top_k]
+    else:
+        results = vectorstore.similarity_search_with_score(query, k=top_k)
 
     output = []
     for doc, score in results:
