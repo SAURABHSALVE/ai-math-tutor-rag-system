@@ -83,26 +83,83 @@ def _postprocess_mistral_math(text: str) -> str:
 
     # Remove markdown image placeholders
     result = _re.sub(r'!\[.*?\]\(.*?\)', '', result)
+    # Remove markdown headings (# Find → Find)
+    result = _re.sub(r'^#+\s*', '', result, flags=_re.MULTILINE)
     # Remove markdown bold/italic but keep content
     result = result.replace('**', '').replace('__', '')
-    # Normalize LaTeX-style fractions: \frac{a}{b} → (a)/(b)
+
+    # ── LaTeX commands with arguments ──
+    # \frac{a}{b} → (a)/(b)
     result = _re.sub(r'\\frac\{([^}]*)\}\{([^}]*)\}', r'(\1)/(\2)', result)
-    # Normalize common LaTeX: \sqrt{x} → sqrt(x)
+    # \sqrt{x} → sqrt(x)
     result = _re.sub(r'\\sqrt\{([^}]*)\}', r'sqrt(\1)', result)
-    # Remove \left and \right
-    result = result.replace('\\left', '').replace('\\right', '')
+    # \text{abc}, \mathrm{abc}, \mathbf{abc} → abc
+    result = _re.sub(r'\\(?:text|mathrm|mathbf|operatorname)\{([^}]*)\}', r'\1', result)
+
+    # ── LaTeX symbol commands → plain math ──
+    _latex_symbols = {
+        '\\int': '\u222b',     # ∫
+        '\\sum': '\u2211',     # ∑
+        '\\prod': '\u220f',    # ∏
+        '\\lim': 'lim',
+        '\\infty': '\u221e',   # ∞
+        '\\pm': '\u00b1',      # ±
+        '\\mp': '\u2213',      # ∓
+        '\\times': '*',
+        '\\cdot': '*',
+        '\\div': '/',
+        '\\neq': '!=',
+        '\\leq': '<=',
+        '\\geq': '>=',
+        '\\le': '<=',
+        '\\ge': '>=',
+        '\\lt': '<',
+        '\\gt': '>',
+        '\\approx': '\u2248',  # ≈
+        '\\pi': '\u03c0',      # π
+        '\\theta': '\u03b8',   # θ
+        '\\alpha': '\u03b1',   # α
+        '\\beta': '\u03b2',    # β
+        '\\gamma': '\u03b3',   # γ
+        '\\delta': '\u03b4',   # δ
+        '\\sigma': '\u03c3',   # σ
+        '\\mu': '\u03bc',      # μ
+        '\\lambda': '\u03bb',  # λ
+        '\\cap': '\u2229',     # ∩
+        '\\cup': '\u222a',     # ∪
+        '\\in': '\u2208',      # ∈
+        '\\to': '\u2192',      # →
+        '\\rightarrow': '\u2192',
+        '\\left': '',
+        '\\right': '',
+        '\\,': ' ',
+        '\\;': ' ',
+        '\\quad': ' ',
+        '\\qquad': '  ',
+    }
+    # Sort by longest key first to avoid partial matches (e.g. \le matching inside \left)
+    for cmd, repl in sorted(_latex_symbols.items(), key=lambda x: -len(x[0])):
+        result = result.replace(cmd, repl)
+
     # Convert LaTeX superscript: x^{2} → x^2
     result = _re.sub(r'\^\{([^}]*)\}', r'^\1', result)
     # Convert LaTeX subscript: x_{i} → x_i
     result = _re.sub(r'_\{([^}]*)\}', r'_\1', result)
-    # Remove remaining backslash commands but keep the text: \text{abc} → abc
-    result = _re.sub(r'\\(?:text|mathrm|mathbf)\{([^}]*)\}', r'\1', result)
-    # Remove dollar signs (inline math)
+
+    # Remove dollar signs (inline math delimiters)
     result = result.replace('$', '')
     # Remove stray backslashes before common symbols
     result = _re.sub(r'\\([+\-*/=(){}])', r'\1', result)
+    # Remove any remaining lone backslash commands: \foo → foo
+    result = _re.sub(r'\\([a-zA-Z]+)', r'\1', result)
+
     # Normalize minus signs and dashes
-    result = result.replace('—', '-').replace('–', '-').replace('−', '-')
+    result = result.replace('\u2014', '-').replace('\u2013', '-').replace('\u2212', '-')
+
+    # ── Clean up coefficient "1" artifacts ──
+    # "1x" → "x" (but keep "10x", "11x", "1.5x", etc.)
+    result = _re.sub(r'(?<![0-9.])1([a-zA-Z])', r'\1', result)
+
     # Collapse multiple spaces and blank lines
     result = _re.sub(r' +', ' ', result)
     result = _re.sub(r'\n{3,}', '\n\n', result)

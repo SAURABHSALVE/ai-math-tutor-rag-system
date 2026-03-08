@@ -4,6 +4,7 @@ Multimodal AI math tutor using GPT-4o, LangGraph agents, LangChain RAG,
 HITL verification, and SQLite-backed memory.
 """
 
+import re
 import streamlit as st
 import os
 
@@ -11,6 +12,40 @@ import config
 from agents import run_pipeline
 from input_handlers import extract_text_from_image, transcribe_audio, save_uploaded_file, create_sample_math_image
 from memory_layer import store_problem, update_feedback, get_all_memories, retrieve_similar
+
+
+def _format_math_answer(text: str) -> str:
+    """Convert SymPy notation to clean math display.
+
+    Examples:
+        2*x**2 + x  →  2x² + x
+        x**3 - 4*x  →  x³ - 4x
+        sqrt(2)/2    →  √2/2
+    """
+    if not text:
+        return text
+    result = str(text)
+
+    # Superscript map for common exponents
+    _sup = {"0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+            "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹"}
+
+    # Replace **n with superscript digits (handles multi-digit like **12)
+    def _to_super(m):
+        return "".join(_sup.get(c, c) for c in m.group(1))
+    result = re.sub(r'\*\*(\d+)', _to_super, result)
+
+    # Remove multiplication signs between number and variable: 2*x → 2x
+    result = re.sub(r'(\d)\*([a-zA-Z])', r'\1\2', result)
+    # Remove multiplication signs between variable and variable: x*y → xy
+    result = re.sub(r'([a-zA-Z])\*([a-zA-Z])', r'\1\2', result)
+    # Remove multiplication signs between closing paren and variable: )*x → )x
+    result = re.sub(r'\)\*([a-zA-Z])', r')\1', result)
+
+    # sqrt() → √()
+    result = result.replace('sqrt(', '√(')
+
+    return result
 
 
 # ── Page Config ──────────────────────────────────────────────
@@ -331,7 +366,8 @@ if result:
                         )
 
             st.subheader("Final Answer")
-            st.success(f"**{result['solution'].get('final_answer', 'N/A')}**")
+            raw_answer = result['solution'].get('final_answer', 'N/A')
+            st.success(f"**{_format_math_answer(raw_answer)}**")
 
             # Show corrected problem if different from original
             corrected = result["solution"].get("corrected_problem", "")
