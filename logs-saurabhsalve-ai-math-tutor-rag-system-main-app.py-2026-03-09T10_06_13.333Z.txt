@@ -1,0 +1,199 @@
+
+[     UTC     ] Logs for ai-math-wise.streamlit.app/
+────────────────────────────────────────────────────────────────────────────────────────
+[09:57:44] 🖥 Provisioning machine...
+[09:57:44] 🎛 Preparing system...
+[09:57:44] ⛓ Spinning up manager process...
+[09:57:56] 🚀 Starting up repository: 'ai-math-tutor-rag-system', branch: 'main', main module: 'app.py'
+[09:57:56] 🐙 Cloning repository...
+[09:57:57] 🐙 Cloning into '/mount/src/ai-math-tutor-rag-system'...
+
+[09:57:57] 🐙 Cloned repository!
+[09:57:57] 🐙 Pulling code changes from Github...
+[09:57:57] 📦 Processing dependencies...
+
+──────────────────────────────────────── uv ───────────────────────────────────────────
+
+Using uv pip install.
+Using Python 3.14.3 environment at /home/adminuser/venv
+Resolved 128 packages in 1.89s
+Prepared 128 packages in 53.45s
+Installed 128 packages in 962ms
+ + aiohappyeyeballs==2.6.1
+ + [2026-03-09 09:58:54.474856] aiohttp==3.13.3
+ + aiosignal==1.4.0
+ + altair==4.2.2
+ + annotated-types==0.7.0
+ + anyio==4.12.1
+ + [2026-03-09 09:58:54.475074] attrs==25.4.0
+ + audio-recorder-streamlit==0.0.10
+ + blinker==1.9.0
+ + cachetools==7.0.4
+ + certifi==[2026-03-09 09:58:54.475262] 2026.2.25
+ + charset-normalizer==3.4.5
+ + click==8.3.1
+ + cuda-bindings==12.9.4
+ [2026-03-09 09:58:54.475400] + cuda-pathfinder==1.4.1
+ + dataclasses-json==0.6.7
+ + distro==1.9.0
+ + easyocr==1.7.2
+ + [2026-03-09 09:58:54.475515] entrypoints==0.4
+ + faiss-cpu==1.13.2
+ + filelock==3.25.0
+ + frozenlist==1.8.0
+ + fsspec==2026.2.0[2026-03-09 09:58:54.475665] 
+ + gitdb==4.0.12
+ + gitpython==3.1.46
+ + greenlet==3.3.2
+ + [2026-03-09 09:58:54.475859] h11==0.16.0
+ + httpcore==1.0.9
+ + httpx==0.28.1
+ + httpx-sse==0.4.3
+ + idna==3.11[2026-03-09 09:58:54.476075] 
+ + imageio==2.37.2
+ + jinja2==3.1.6
+ + jiter==0.13.0
+ + [2026-03-09 09:58:54.476282] jsonpatch==1.33
+ + jsonpointer==3.0.0
+ + jsonschema==4.26.0
+ +[2026-03-09 09:58:54.476461]  jsonschema-specifications==2025.9.1
+ + langchain==1.2.10
+ + langchain-classic==1.0.2
+ + langchain-community==0.4.1
+ + langchain-core==1.2.17
+ + langchain-openai==1.1.10[2026-03-09 09:58:54.476907] 
+ + langchain-text-splitters==1.1.1
+ + langgraph==1.0.10
+ + langgraph-checkpoint==4.0.1[2026-03-09 09:58:54.477060] 
+ + langgraph-prebuilt==1.0.8
+ + langgraph-sdk==0.3.9
+ + langsmith==[2026-03-09 09:58:54.477238] 0.7.14
+ + lazy-loader==0.5
+ + markupsafe==3.0.3
+ + marshmallow==[2026-03-09 09:58:54.477539] 3.26.2
+ + mpmath==1.3.0
+ + multidict==6.7.1[2026-03-09 09:58:54.477752] 
+ + mypy-extensions==1.1.0
+ + networkx==3.6.1
+ + ninja==[2026-03-09 09:58:54.477925] 1.13.0
+ + numpy==2.4.3
+ + nvidia-cublas-cu12==12.8.4.1
+ + nvidia-cuda-cupti-cu12==12.8.90
+ +[2026-03-09 09:58:54.478068]  nvidia-cuda-nvrtc-cu12==12.8.93
+ + nvidia-cuda-runtime-cu12==12.8.90
+ + nvidia-cudnn-cu12==9.10.2.21
+ [2026-03-09 09:58:54.478253] + nvidia-cufft-cu12==11.3.3.83
+ + nvidia-cufile-cu12==1.13.1.3
+ + nvidia-curand-cu12==10.3.9.90
+ + nvidia-cusolver-cu12==11.7.3.90
+ + nvidia-cusparse-cu12==[2026-03-09 09:58:54.478436] 12.5.8.93
+ + nvidia-cusparselt-cu12==0.7.1
+ + nvidia-nccl-cu12==2.27.5
+ + nvidia-nvjitlink-cu12==12.8.93
+ + nvidia-nvshmem-cu12==3.4.5
+ [2026-03-09 09:58:54.478607] + nvidia-nvtx-cu12==12.8.90
+ + openai==2.26.0
+ + opencv-python-headless==4.13.0.92
+ + orjson==3.11.7
+ [2026-03-09 09:58:54.478747] + ormsgpack==1.12.2
+ + packaging==26.0
+ + pandas==2.3.3
+ + pillow==12.1.1
+ + propcache[2026-03-09 09:58:54.478904] ==0.4.1
+ + protobuf==6.33.5
+ + pyarrow==23.0.1
+ + pyclipper==1.4.0
+ + pydantic[2026-03-09 09:58:54.479054] ==2.12.5
+ + pydantic-core==2.41.5
+ + pydantic-settings==2.13.1
+ + pydeck==0.9.1
+ + python-bidi==0.6.7
+ + python-dateutil==2.9.0[2026-03-09 09:58:54.479177] .post0
+ + python-dotenv==1.2.2
+ + pytz==2026.1.post1
+ + pyyaml==6.0.3
+ + referencing==0.37.0
+ + regex[2026-03-09 09:58:54.479366] ==2026.2.28
+ + requests==2.32.5
+ + requests-toolbelt==1.0.0
+ + rpds-py==0.30.0
+ + scikit-image==0.26.0[2026-03-09 09:58:54.479547] 
+ + scipy==1.17.1
+ + setuptools==82.0.0
+ + shapely==2.1.2
+ + six==1.17.0
+ + [2026-03-09 09:58:54.479717] smmap==5.0.3
+ + sniffio==1.3.1
+ + sqlalchemy==2.0.48
+ + streamlit==1.55.0
+ + sympy==[2026-03-09 09:58:54.479907] 1.14.0
+ + tenacity==9.1.4
+ + tifffile==2026.3.3
+ + tiktoken[2026-03-09 09:58:54.480053] ==0.12.0
+ + toml==0.10.2
+ + [2026-03-09 09:58:54.480191] toolz==1.1.0
+ + torch==2.10.0
+ + torchvision==0.25.0
+ + tornado==6.5.4[2026-03-09 09:58:54.480340] 
+ + tqdm==4.67.3
+ + triton==3.6.0
+ + typing-extensions==4.15.0
+ + typing-inspect==0.9.0[2026-03-09 09:58:54.480474] 
+ + typing-inspection==0.4.2
+ + tzdata==2025.3
+ + urllib3==2.6.3
+ + uuid-utils[2026-03-09 09:58:54.480613] ==0.14.1
+ + watchdog==6.0.0
+ +[2026-03-09 09:58:54.480748]  xxhash==3.6.0
+ + yarl==1.23.0
+ + zstandard==0.25.0
+Checking if Streamlit is installed
+Found Streamlit version 1.55.0 in the environment
+Installing rich for an improved exception logging
+Using uv pip install.
+Using Python 3.14.3 environment at /home/adminuser/venv
+Resolved 4 packages in 149ms
+Prepared 4 packages in 114ms
+Installed 4 packages in 11ms
+ + markdown-it-py==4.0.0
+ + mdurl==0.1.2
+ + pygments[2026-03-09 09:58:56.918227] ==2.19.2
+ + rich==14.3.3
+
+────────────────────────────────────────────────────────────────────────────────────────
+
+[09:58:57] 🐍 Python dependencies were installed from /mount/src/ai-math-tutor-rag-system/requirements.txt using uv.
+Check if streamlit is installed
+Streamlit is already installed
+[09:58:58] 📦 Processed dependencies!
+
+
+
+/home/adminuser/venv/lib/python3.14/site-packages/langchain_core/_api/deprecation.py:25: UserWarning: Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater.
+  from pydantic.v1.fields import FieldInfo as FieldInfoV1
+2026-03-09 10:00:42.509 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
+2026-03-09 10:00:58.251 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
+2026-03-09 10:01:00.622 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
+Mistral OCR failed: No module named 'mistralai', falling back to EasyOCR
+Using CPU. Note: This module is much faster with a GPU.
+Downloading detection model, please wait. This may take several minutes depending upon your network connection.
+[10:05:19] 🐙 Pulling code changes from Github...
+[10:05:20] 📦 Processing dependencies...
+[10:05:20] 📦 Processed dependencies!
+[10:05:21] 🔄 Updated app!
+[10:05:34] 🐙 Pulling code changes from Github...
+[10:05:35] 📦 Processing dependencies...
+[10:05:35] 📦 Processed dependencies!
+[10:05:36] 🔄 Updated app!
