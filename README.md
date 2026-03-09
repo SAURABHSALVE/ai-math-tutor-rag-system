@@ -4,109 +4,194 @@ A multimodal AI application that solves JEE-style math problems using **GPT-4o**
 
 ## Architecture
 
+### High-Level System Flow
+
+```mermaid
+graph LR
+    A["🎓 Student"] ==> B["🖥️ Streamlit UI"]
+    B ==> C["📥 Input Layer\n(Text / Image / Audio)"]
+    C ==> D["🤖 LangGraph Pipeline\n(6 AI Agents)"]
+    D <-.-> E["📚 RAG\n(FAISS + LangChain)"]
+    D <-.-> F["🧠 Memory\n(SQLite + Embeddings)"]
+    D ==> G["📊 Output\n(Answer + Explanation)"]
+    G ==> H["🔄 Feedback Loop"]
+    H ==> F
+
+    style A fill:#6c5ce7,stroke:#a29bfe,color:#fff,stroke-width:2px
+    style B fill:#0984e3,stroke:#74b9ff,color:#fff,stroke-width:2px
+    style C fill:#00b894,stroke:#55efc4,color:#fff,stroke-width:2px
+    style D fill:#e17055,stroke:#fab1a0,color:#fff,stroke-width:2px
+    style E fill:#fdcb6e,stroke:#ffeaa7,color:#333,stroke-width:2px
+    style F fill:#00cec9,stroke:#81ecec,color:#fff,stroke-width:2px
+    style G fill:#6c5ce7,stroke:#a29bfe,color:#fff,stroke-width:2px
+    style H fill:#d63031,stroke:#ff7675,color:#fff,stroke-width:2px
+```
+
+---
+
+### 📥 Multimodal Input Layer
+
 ```mermaid
 graph TD
-    A["🎓 Student"] --> B["Streamlit UI"]
+    A["🎓 Student uploads\nproblem"] --> B{"Select Input Mode"}
 
-    subgraph INPUT["📥 Multimodal Input Layer"]
-        B --> C{Input Mode?}
-        C -->|"✏️ Text"| D["Text Input (passthrough)"]
-        C -->|"📷 Image"| E["Mistral OCR (primary)"]
-        C -->|"🎤 Audio"| F["OpenAI Whisper API"]
-        E -->|fallback| E2["EasyOCR → GPT-4o Vision"]
-    end
+    B -->|"✏️ Text"| C["Direct Text Input\n(passthrough)"]
 
-    E --> G{"Confidence ≥ threshold?"}
-    E2 --> G
-    F --> G
-    D --> H["Raw Math Text"]
-    G -->|"✅ High"| H
-    G -->|"⚠️ Low"| I["HITL: Student Reviews & Edits Text"]
-    I --> H
+    B -->|"📷 Image"| D["Mistral OCR\n(primary engine)"]
+    D -->|"if fails"| D2["EasyOCR\n(fallback #1)"]
+    D2 -->|"if fails"| D3["GPT-4o Vision\n(fallback #2)"]
 
-    H --> PIPELINE
+    B -->|"🎤 Audio"| E["OpenAI Whisper API\n(gpt-4o-transcribe)"]
 
-    subgraph PIPELINE["🤖 LangGraph Multi-Agent Pipeline (6 Agents)"]
-        direction TB
-        AG1["🛡️ Agent 0: Guardrail
-        Validates input is a math problem
-        (gpt-4o-mini)"]
-        --> AG2["📝 Agent 1: Parser
-        Cleans text, extracts equation,
-        detects topic & ambiguity
-        (gpt-4o-mini)"]
-        --> AGQ{Needs Clarification?}
-        AGQ -->|"Yes"| HITL2["HITL: Ask Student"]
-        AGQ -->|"No"| AG3
-        AG3["🔀 Agent 2: Intent Router
-        Keyword + regex topic detection,
-        picks solve strategy, generates RAG queries
-        (gpt-4o-mini)"]
-        --> AG4["🧮 Agent 3: Solver
-        Uses RAG context + memory +
-        SymPy calculator to solve
-        (gpt-4o)"]
-        --> AG5["✅ Agent 4: Verifier
-        Dual-run SymPy check, confidence scoring,
-        triggers HITL if uncertain
-        (gpt-4o)"]
-        --> AG6["📖 Agent 5: Explainer
-        Step-by-step student-friendly explanation,
-        key concepts, tips, common mistakes
-        (gpt-4o)"]
-    end
+    D --> F{"Confidence\n≥ threshold?"}
+    D2 --> F
+    D3 --> F
+    E --> F
+    C --> G["✅ Raw Math Text"]
+    F -->|"✅ High\nconfidence"| G
+    F -->|"⚠️ Low\nconfidence"| H["👤 HITL:\nStudent Reviews\n& Edits Text"]
+    H --> G
 
+    G --> I["➡️ Send to\nLangGraph Pipeline"]
+
+    style A fill:#6c5ce7,stroke:#a29bfe,color:#fff,stroke-width:2px
+    style B fill:#0984e3,stroke:#74b9ff,color:#fff,stroke-width:2px
+    style C fill:#00b894,stroke:#55efc4,color:#fff,stroke-width:2px
+    style D fill:#fdcb6e,stroke:#ffeaa7,color:#333,stroke-width:2px
+    style D2 fill:#fdcb6e,stroke:#ffeaa7,color:#333,stroke-width:2px
+    style D3 fill:#fdcb6e,stroke:#ffeaa7,color:#333,stroke-width:2px
+    style E fill:#00b894,stroke:#55efc4,color:#fff,stroke-width:2px
+    style F fill:#e17055,stroke:#fab1a0,color:#fff,stroke-width:2px
+    style G fill:#00cec9,stroke:#81ecec,color:#fff,stroke-width:2px
+    style H fill:#d63031,stroke:#ff7675,color:#fff,stroke-width:2px
+    style I fill:#6c5ce7,stroke:#a29bfe,color:#fff,stroke-width:2px
+```
+
+---
+
+### 🤖 LangGraph Multi-Agent Pipeline (6 Agents)
+
+```mermaid
+graph TD
+    START["📥 Raw Math Text"] --> AG0
+
+    AG0["🛡️ Agent 0: GUARDRAIL\n─────────────────\nValidates input is a math problem\nBlocks non-math queries\n\n🏷️ Model: gpt-4o-mini"]
+    --> AG1
+
+    AG1["📝 Agent 1: PARSER\n─────────────────\nCleans text, extracts equation\nIdentifies topic & detects ambiguity\n\n🏷️ Model: gpt-4o-mini"]
+    --> CHECK{"❓ Needs\nClarification?"}
+
+    CHECK -->|"✅ No"| AG2
+    CHECK -->|"⚠️ Yes"| HITL["👤 HITL:\nAsk Student\nfor Clarification"]
+    HITL --> AG2
+
+    AG2["🔀 Agent 2: INTENT ROUTER\n─────────────────\nKeyword + regex topic detection\nPicks solve strategy\nGenerates RAG search queries\n\n🏷️ Model: gpt-4o-mini"]
+    --> AG3
+
+    AG3["🧮 Agent 3: SOLVER\n─────────────────\nUses RAG context + memory\nSymPy symbolic calculator\nProduces step-by-step solution\n\n🏷️ Model: gpt-4o"]
+    --> AG4
+
+    AG4["✅ Agent 4: VERIFIER\n─────────────────\nDual-run SymPy verification\nConfidence scoring (0-100%)\nTriggers HITL if uncertain\n\n🏷️ Model: gpt-4o"]
+    --> AG5
+
+    AG5["📖 Agent 5: EXPLAINER\n─────────────────\nStudent-friendly explanation\nKey concepts, tips, common mistakes\nDifficulty rating\n\n🏷️ Model: gpt-4o"]
+    --> DONE["📊 Final Output"]
+
+    AG2 -.->|"search\nqueries"| RAG["📚 FAISS\nVector Store"]
+    RAG -.->|"relevant\ncontext"| AG3
+
+    AG3 -.->|"find similar\nproblems"| MEM["🧠 SQLite\nMemory"]
+    MEM -.->|"past solutions\n& corrections"| AG3
+
+    style START fill:#6c5ce7,stroke:#a29bfe,color:#fff,stroke-width:2px
+    style AG0 fill:#636e72,stroke:#b2bec3,color:#fff,stroke-width:2px,text-align:left
+    style AG1 fill:#0984e3,stroke:#74b9ff,color:#fff,stroke-width:2px
+    style CHECK fill:#e17055,stroke:#fab1a0,color:#fff,stroke-width:2px
+    style HITL fill:#d63031,stroke:#ff7675,color:#fff,stroke-width:2px
+    style AG2 fill:#6c5ce7,stroke:#a29bfe,color:#fff,stroke-width:2px
+    style AG3 fill:#00b894,stroke:#55efc4,color:#fff,stroke-width:2px
+    style AG4 fill:#fdcb6e,stroke:#ffeaa7,color:#333,stroke-width:2px
+    style AG5 fill:#e84393,stroke:#fd79a8,color:#fff,stroke-width:2px
+    style DONE fill:#00cec9,stroke:#81ecec,color:#fff,stroke-width:2px
+    style RAG fill:#fdcb6e,stroke:#ffeaa7,color:#333,stroke-width:2px
+    style MEM fill:#00cec9,stroke:#81ecec,color:#fff,stroke-width:2px
+```
+
+---
+
+### 📚 RAG Pipeline & 🧠 Memory System
+
+```mermaid
+graph LR
     subgraph RAG["📚 RAG Pipeline"]
-        R1["Knowledge Base (6 MD docs)
-        Algebra · Calculus · Probability
-        Linear Algebra · Mistakes · Templates"]
-        --> R2["LangChain Text Splitter
-        (500 chars, 50 overlap)"]
-        --> R3["OpenAI text-embedding-3-small"]
-        --> R4["FAISS Vector Store
-        (Top-5 retrieval)"]
+        direction TB
+        KB["📄 Knowledge Base\n(6 Markdown docs)\n─────────────\nAlgebra Formulas\nCalculus Formulas\nProbability Formulas\nLinear Algebra Formulas\nCommon Mistakes\nSolution Templates"]
+        --> SPLIT["✂️ LangChain\nText Splitter\n─────────────\n500 chars\n50 overlap"]
+        --> EMBED["🔢 OpenAI\nEmbeddings\n─────────────\ntext-embedding-\n3-small"]
+        --> FAISS["🔍 FAISS\nVector Store\n─────────────\nTop-5 retrieval\nSimilarity search"]
     end
 
     subgraph MEMORY["🧠 Memory & Self-Learning"]
-        M1["SQLite Database"]
-        M2["Similar Problem Retrieval
-        (cosine similarity on embeddings)"]
-        M3["Correction Patterns
-        (learned from student feedback)"]
-        M1 --- M2
-        M1 --- M3
+        direction TB
+        DB["🗄️ SQLite Database\n─────────────\nStores every solved problem\nwith full pipeline state"]
+        --> SIM["🔎 Similar Problem\nRetrieval\n─────────────\nCosine similarity\non embeddings"]
+        DB --> CORR["📝 Correction\nPatterns\n─────────────\nLearned from student\nfeedback over time"]
     end
 
-    AG3 -.->|"query"| R4
-    R4 -.->|"relevant context"| AG3
-    AG3 -.->|"query"| M2
-    M2 -.->|"past solutions"| AG3
-    M3 -.->|"correction hints"| AG3
+    FAISS -->|"relevant\nformulas &\ntemplates"| SOLVER["🧮 Solver Agent"]
+    SIM -->|"past\nsolutions"| SOLVER
+    CORR -->|"correction\nhints"| SOLVER
 
-    AG6 --> OUTPUT
+    style KB fill:#fdcb6e,stroke:#ffeaa7,color:#333,stroke-width:2px
+    style SPLIT fill:#fdcb6e,stroke:#ffeaa7,color:#333,stroke-width:2px
+    style EMBED fill:#fdcb6e,stroke:#ffeaa7,color:#333,stroke-width:2px
+    style FAISS fill:#e17055,stroke:#fab1a0,color:#fff,stroke-width:2px
+    style DB fill:#00cec9,stroke:#81ecec,color:#fff,stroke-width:2px
+    style SIM fill:#00cec9,stroke:#81ecec,color:#fff,stroke-width:2px
+    style CORR fill:#00cec9,stroke:#81ecec,color:#fff,stroke-width:2px
+    style SOLVER fill:#00b894,stroke:#55efc4,color:#fff,stroke-width:2px
+```
 
-    subgraph OUTPUT["📊 Output & Feedback"]
-        O1["Final Answer
-        (formatted with math symbols)"]
-        O2["Step-by-Step Solution"]
-        O3["Verification Details + Confidence"]
-        O4["Key Concepts · Tips · Common Mistakes"]
-        O5["Difficulty Rating"]
-        O6["Agent Trace (full pipeline visibility)"]
-        O1 --- O2 --- O3 --- O4 --- O5 --- O6
-    end
+---
 
-    OUTPUT --> FB{Student Feedback}
-    FB -->|"✅ Correct"| S1["Store in SQLite Memory"]
-    FB -->|"❌ Incorrect + Correction"| S2["Store Correction Pattern"]
-    S1 --> M1
-    S2 --> M1
+### 📊 Output & Feedback Loop
 
-    style INPUT fill:#1e1e2e,stroke:#818cf8,color:#cdd6f4
-    style PIPELINE fill:#1e1e2e,stroke:#c084fc,color:#cdd6f4
-    style RAG fill:#1e1e2e,stroke:#f9e2af,color:#cdd6f4
-    style MEMORY fill:#1e1e2e,stroke:#a6e3a1,color:#cdd6f4
-    style OUTPUT fill:#1e1e2e,stroke:#89b4fa,color:#cdd6f4
+```mermaid
+graph TD
+    EXP["📖 Explainer Agent"] ==> OUT["📊 Final Output"]
+
+    OUT --> A1["✨ Final Answer\n(formatted with math symbols\nlike x², √, π)"]
+    OUT --> A2["📝 Step-by-Step Solution\n(detailed walkthrough)"]
+    OUT --> A3["✅ Verification Details\n(SymPy check + confidence %)"]
+    OUT --> A4["💡 Key Concepts · Tips\n· Common Mistakes"]
+    OUT --> A5["📈 Difficulty Rating\n(Easy / Medium / Hard)"]
+    OUT --> A6["🔍 Agent Trace\n(full pipeline visibility)"]
+
+    A1 --> FB{"🎓 Student Feedback"}
+    A2 --> FB
+    A3 --> FB
+    A4 --> FB
+    A5 --> FB
+    A6 --> FB
+
+    FB -->|"✅ Correct"| STORE["🧠 Store solution\nin SQLite Memory"]
+    FB -->|"❌ Incorrect +\nStudent Correction"| LEARN["🧠 Store correction\npattern for learning"]
+
+    STORE --> LOOP["🔄 Improves future\nproblem solving"]
+    LEARN --> LOOP
+
+    style EXP fill:#e84393,stroke:#fd79a8,color:#fff,stroke-width:2px
+    style OUT fill:#6c5ce7,stroke:#a29bfe,color:#fff,stroke-width:2px
+    style A1 fill:#0984e3,stroke:#74b9ff,color:#fff,stroke-width:2px
+    style A2 fill:#0984e3,stroke:#74b9ff,color:#fff,stroke-width:2px
+    style A3 fill:#0984e3,stroke:#74b9ff,color:#fff,stroke-width:2px
+    style A4 fill:#0984e3,stroke:#74b9ff,color:#fff,stroke-width:2px
+    style A5 fill:#0984e3,stroke:#74b9ff,color:#fff,stroke-width:2px
+    style A6 fill:#0984e3,stroke:#74b9ff,color:#fff,stroke-width:2px
+    style FB fill:#e17055,stroke:#fab1a0,color:#fff,stroke-width:2px
+    style STORE fill:#00b894,stroke:#55efc4,color:#fff,stroke-width:2px
+    style LEARN fill:#00b894,stroke:#55efc4,color:#fff,stroke-width:2px
+    style LOOP fill:#00cec9,stroke:#81ecec,color:#fff,stroke-width:2px
 ```
 
 ## Core Stack
@@ -127,7 +212,7 @@ graph TD
 ## Features
 
 - **Multimodal Input**: Text, Image (GPT-4o Vision), Audio (Whisper API)
-- **5 LangGraph Agents**: Parser, Intent Router, Solver, Verifier, Explainer
+- **6 LangGraph Agents**: Guardrail, Parser, Intent Router, Solver, Verifier, Explainer
 - **RAG Pipeline**: LangChain text splitter + FAISS + OpenAI embeddings
 - **Human-in-the-Loop**: Triggers on low confidence, ambiguity, verification failures
 - **Memory & Self-Learning**: SQLite-backed store; retrieves similar problems, learns from corrections
@@ -176,10 +261,10 @@ Opens at `http://localhost:8501`.
 ```
 ai-math/
 ├── app.py                  # Streamlit UI
-├── agents.py               # LangGraph multi-agent pipeline (5 agents)
+├── agents.py               # LangGraph multi-agent pipeline (6 agents)
 ├── rag_pipeline.py         # LangChain + FAISS RAG
 ├── memory_layer.py         # SQLite memory store
-├── input_handlers.py       # GPT-4o Vision + Whisper API
+├── input_handlers.py       # Mistral OCR + EasyOCR + GPT-4o Vision + Whisper API
 ├── config.py               # Configuration
 ├── requirements.txt        # Dependencies
 ├── .env.example            # Environment template
@@ -197,8 +282,9 @@ ai-math/
 ## How It Works
 
 1. **Input** - Student provides a math problem via text, image, or audio
-2. **Extraction** - GPT-4o Vision (images) or Whisper API (audio) extracts text; user can edit (HITL)
-3. **LangGraph Pipeline** runs 5 agents sequentially with typed state:
+2. **Extraction** - Mistral OCR (images) or Whisper API (audio) extracts text; user can edit (HITL)
+3. **LangGraph Pipeline** runs 6 agents sequentially with typed state:
+   - **Guardrail** - Validates input is a math problem
    - **Parser** - Cleans input, identifies topic, detects ambiguity
    - **Intent Router** - Selects strategy, generates RAG queries
    - **Solver** - Uses RAG context + memory + SymPy to solve
