@@ -1,5 +1,7 @@
 # Math Mentor - AI-Powered JEE Math Tutor
 
+**[Try it live here](https://ai-math-wise.streamlit.app/)** — for more details and understanding, read below.
+
 A multimodal AI application that solves JEE-style math problems using **GPT-4o**, **LangGraph** multi-agent orchestration, **LangChain + FAISS** RAG, human-in-the-loop verification, and **SQLite**-backed memory.
 
 ## Architecture
