@@ -75,6 +75,54 @@ def _mistral_ocr_extract(image_path: str) -> Tuple[str, float]:
     return combined, confidence
 
 
+def _fix_common_math_ocr_errors(text: str) -> str:
+    """Fix common OCR misreads in math expressions.
+
+    Handles character-level confusions that all OCR engines make:
+    - ∫ (integral) misread as 'f' when followed by (...) dx
+    - '5' misread as 'S' in numeric/coefficient context
+    - '0' misread as 'O' in numeric context
+    - '1' misread as 'l' or 'I' in numeric context
+    - '2' misread as 'Z' in numeric context
+    """
+    import re as _re
+    result = text
+
+    # ── Integral sign: "f (...) dx" or "f ... dx" → "integrate ..." ──
+    # Pattern: standalone "f" before an expression ending with "dx", "dy", "dt"
+    result = _re.sub(
+        r'\bf\s*\((.+?)\)\s*d([xyzt])\b',
+        r'integrate (\1) d\2',
+        result, flags=_re.IGNORECASE,
+    )
+    # Also handle without parens: "f 5x-4 dx" → "integrate 5x-4 dx"
+    result = _re.sub(
+        r'\bf\s+([^,\n]+?)\s+d([xyzt])\b',
+        r'integrate \1 d\2',
+        result, flags=_re.IGNORECASE,
+    )
+
+    # ── 'S' misread as '5' in coefficient position ──
+    # "Sx" → "5x", "S*x" → "5*x", "(Sx" → "(5x"  (but not "Solve", "Sum", etc.)
+    result = _re.sub(r'(?<![a-zA-Z])S(?=[xyzt\d*(/])', '5', result)
+
+    # ── 'O' misread as '0' in numeric context ──
+    # "1O" → "10", "2O" → "20", "O.5" → "0.5"
+    result = _re.sub(r'(\d)O', r'\g<1>0', result)
+    result = _re.sub(r'\bO(?=\.\d)', '0', result)
+
+    # ── 'l' (lowercase L) or 'I' misread as '1' in numeric context ──
+    # "l2" → "12", "3l" → "31" (but not in words)
+    result = _re.sub(r'(\d)[lI](?=\d|\b)', r'\g<1>1', result)
+    result = _re.sub(r'(?<!\w)[lI](\d)', r'1\1', result)
+
+    # ── 'Z' misread as '2' in numeric context ──
+    result = _re.sub(r'(\d)Z', r'\g<1>2', result)
+    result = _re.sub(r'(?<![a-zA-Z])Z(?=\d)', '2', result)
+
+    return result
+
+
 def _postprocess_mistral_math(text: str) -> str:
     """Clean Mistral OCR markdown output for math problem usage."""
     import re as _re
@@ -164,6 +212,9 @@ def _postprocess_mistral_math(text: str) -> str:
     result = _re.sub(r' +', ' ', result)
     result = _re.sub(r'\n{3,}', '\n\n', result)
 
+    # Fix common OCR character confusions (∫→f, 5→S, etc.)
+    result = _fix_common_math_ocr_errors(result)
+
     return result.strip()
 
 
@@ -194,6 +245,9 @@ def _postprocess_ocr_math(text: str) -> str:
 
     # Collapse multiple spaces
     result = _re.sub(r' +', ' ', result).strip()
+
+    # Fix common OCR character confusions (∫→f, 5→S, etc.)
+    result = _fix_common_math_ocr_errors(result)
 
     return result
 
