@@ -139,6 +139,61 @@ ai-math/
    - **Explainer** - Creates student-friendly step-by-step explanation
 4. **Feedback** - Student marks correct/incorrect; corrections stored in SQLite for future learning
 
+## UI Screenshots
+
+### Home Page — Text Input & Solution
+The main interface features a dark-themed dashboard with topic selection, memory stats, pipeline trace, and a clean input area supporting Text, Image, and Audio modes.
+
+![Home - Text Input & Answer](UI/Screenshot%20(41).png)
+
+### Step-by-Step Solution & Verification
+After solving, the app displays a detailed step-by-step solution with confidence score, verification status, difficulty rating, and agent trace.
+
+![Step-by-Step Solution](UI/Screenshot%20(42).png)
+
+### Verification, Common Mistakes & Input Corrections
+The verifier agent checks correctness independently. Common mistakes and input corrections are highlighted to help students learn.
+
+![Verification & Common Mistakes](UI/Screenshot%20(43).png)
+
+### Difficulty Rating, Key Concepts & Feedback
+Each solution ends with a difficulty rating, key concepts, tips, common mistakes summary, and a feedback section for self-learning.
+
+![Difficulty Rating & Feedback](UI/Screenshot%20(44).png)
+
+---
+
+## Example Solution — Image Input (Linear Algebra)
+
+End-to-end walkthrough of solving `Find det([[-4,-2],[5,4]])` from an uploaded image.
+
+### 1. Image Upload & OCR Extraction
+A math problem image is uploaded. Mistral OCR extracts the text with 95% confidence. The student can edit the extracted text before solving (HITL).
+
+![Image Upload & OCR](solutions/math_39-sol/Screenshot%20(36).png)
+
+### 2. Final Answer & Agent Trace
+The solver returns the final answer (`-6`) with a full step-by-step explanation. The Agent Trace panel shows each agent's status (Guardrail, Parser, Router, Solver, Verifier, Explainer). Retrieved RAG context is displayed alongside.
+
+![Solution & Agent Trace](solutions/math_39-sol/Screenshot%20(37).png)
+
+### 3. Solution Steps, SymPy Verification & Confidence
+Detailed arithmetic steps are shown. SymPy solver independently verifies the result. Retrieved context from the knowledge base and overall confidence score are visible.
+
+![Steps & SymPy Verification](solutions/math_39-sol/Screenshot%20(38).png)
+
+### 4. Key Concepts, Tips & Verification Details
+Key concepts, tips for similar problems, and common mistakes are listed. The verification panel confirms correctness with a detailed checklist.
+
+![Key Concepts & Verification](solutions/math_39-sol/Screenshot%20(39).png)
+
+### 5. Difficulty, Expandable Details & Feedback
+Difficulty rating, expandable sections (Parsed Problem, Solution Raw, Verification, Routing Strategy), and Correct/Incorrect feedback buttons for self-learning.
+
+![Difficulty & Feedback](solutions/math_39-sol/Screenshot%20(40).png)
+
+---
+
 ## Deployment (Streamlit Cloud)
 
 1. Push to GitHub
