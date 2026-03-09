@@ -6,56 +6,123 @@ A multimodal AI application that solves JEE-style math problems using **GPT-4o**
 
 ```mermaid
 graph TD
-    A[Student Input] --> B{Input Mode}
-    B -->|Text| C[Text Input]
-    B -->|Image| D[GPT-4o Vision OCR]
-    B -->|Audio| E[OpenAI Whisper API]
+    A["🎓 Student"] --> B["Streamlit UI"]
 
-    D --> F{Confidence Check}
-    E --> F
-    C --> G[Raw Text]
-    F -->|High| G
-    F -->|Low| H[HITL: User Reviews & Edits]
-    H --> G
-
-    G --> LG[LangGraph State Machine]
-
-    subgraph LG[LangGraph Multi-Agent Pipeline]
-        I[Agent 1: Parser] --> J{Needs Clarification?}
-        J -->|Yes| K[HITL: Ask User]
-        J -->|No| L[Agent 2: Intent Router]
-        L --> R[Agent 3: Solver]
-        R --> S[Agent 4: Verifier]
-        S --> V[Agent 5: Explainer]
+    subgraph INPUT["📥 Multimodal Input Layer"]
+        B --> C{Input Mode?}
+        C -->|"✏️ Text"| D["Text Input (passthrough)"]
+        C -->|"📷 Image"| E["Mistral OCR (primary)"]
+        C -->|"🎤 Audio"| F["OpenAI Whisper API"]
+        E -->|fallback| E2["EasyOCR → GPT-4o Vision"]
     end
 
-    L --> M[LangChain RAG]
-    M --> N[FAISS + text-embedding-3-small]
-    N --> R
+    E --> G{"Confidence ≥ threshold?"}
+    E2 --> G
+    F --> G
+    D --> H["Raw Math Text"]
+    G -->|"✅ High"| H
+    G -->|"⚠️ Low"| I["HITL: Student Reviews & Edits Text"]
+    I --> H
 
-    L --> P[SQLite Memory]
-    P --> R
+    H --> PIPELINE
 
-    V --> W[Final Output]
-    W --> X[Student Feedback]
-    X -->|Correct| Y[Store in SQLite]
-    X -->|Incorrect + Correction| Z[Store Correction Pattern]
-    Y --> P
-    Z --> P
+    subgraph PIPELINE["🤖 LangGraph Multi-Agent Pipeline (6 Agents)"]
+        direction TB
+        AG1["🛡️ Agent 0: Guardrail
+        Validates input is a math problem
+        (gpt-4o-mini)"]
+        --> AG2["📝 Agent 1: Parser
+        Cleans text, extracts equation,
+        detects topic & ambiguity
+        (gpt-4o-mini)"]
+        --> AGQ{Needs Clarification?}
+        AGQ -->|"Yes"| HITL2["HITL: Ask Student"]
+        AGQ -->|"No"| AG3
+        AG3["🔀 Agent 2: Intent Router
+        Keyword + regex topic detection,
+        picks solve strategy, generates RAG queries
+        (gpt-4o-mini)"]
+        --> AG4["🧮 Agent 3: Solver
+        Uses RAG context + memory +
+        SymPy calculator to solve
+        (gpt-4o)"]
+        --> AG5["✅ Agent 4: Verifier
+        Dual-run SymPy check, confidence scoring,
+        triggers HITL if uncertain
+        (gpt-4o)"]
+        --> AG6["📖 Agent 5: Explainer
+        Step-by-step student-friendly explanation,
+        key concepts, tips, common mistakes
+        (gpt-4o)"]
+    end
+
+    subgraph RAG["📚 RAG Pipeline"]
+        R1["Knowledge Base (6 MD docs)
+        Algebra · Calculus · Probability
+        Linear Algebra · Mistakes · Templates"]
+        --> R2["LangChain Text Splitter
+        (500 chars, 50 overlap)"]
+        --> R3["OpenAI text-embedding-3-small"]
+        --> R4["FAISS Vector Store
+        (Top-5 retrieval)"]
+    end
+
+    subgraph MEMORY["🧠 Memory & Self-Learning"]
+        M1["SQLite Database"]
+        M2["Similar Problem Retrieval
+        (cosine similarity on embeddings)"]
+        M3["Correction Patterns
+        (learned from student feedback)"]
+        M1 --- M2
+        M1 --- M3
+    end
+
+    AG3 -.->|"query"| R4
+    R4 -.->|"relevant context"| AG3
+    AG3 -.->|"query"| M2
+    M2 -.->|"past solutions"| AG3
+    M3 -.->|"correction hints"| AG3
+
+    AG6 --> OUTPUT
+
+    subgraph OUTPUT["📊 Output & Feedback"]
+        O1["Final Answer
+        (formatted with math symbols)"]
+        O2["Step-by-Step Solution"]
+        O3["Verification Details + Confidence"]
+        O4["Key Concepts · Tips · Common Mistakes"]
+        O5["Difficulty Rating"]
+        O6["Agent Trace (full pipeline visibility)"]
+        O1 --- O2 --- O3 --- O4 --- O5 --- O6
+    end
+
+    OUTPUT --> FB{Student Feedback}
+    FB -->|"✅ Correct"| S1["Store in SQLite Memory"]
+    FB -->|"❌ Incorrect + Correction"| S2["Store Correction Pattern"]
+    S1 --> M1
+    S2 --> M1
+
+    style INPUT fill:#1e1e2e,stroke:#818cf8,color:#cdd6f4
+    style PIPELINE fill:#1e1e2e,stroke:#c084fc,color:#cdd6f4
+    style RAG fill:#1e1e2e,stroke:#f9e2af,color:#cdd6f4
+    style MEMORY fill:#1e1e2e,stroke:#a6e3a1,color:#cdd6f4
+    style OUTPUT fill:#1e1e2e,stroke:#89b4fa,color:#cdd6f4
 ```
 
 ## Core Stack
 
 | Layer | Tool | Why |
 |-------|------|-----|
-| LLM | GPT-4o | Vision + text in one API, no separate OCR needed |
-| Agent Framework | LangGraph | Best for multi-agent with state, routing, HITL |
-| RAG | LangChain + FAISS | Fast to set up, no infra needed |
+| LLM | GPT-4o + GPT-4o-mini | Heavy agents (Solver, Verifier, Explainer) use GPT-4o; lightweight agents (Guardrail, Parser, Router) use GPT-4o-mini for speed |
+| OCR | Mistral OCR (primary) + EasyOCR + GPT-4o Vision (fallbacks) | Best math OCR accuracy with multi-engine fallback |
+| Agent Framework | LangGraph | Typed state, conditional routing, HITL support, agent trace |
+| RAG | LangChain + FAISS | Fast similarity search, no infra needed |
 | Embeddings | text-embedding-3-small | Cheap, fast, OpenAI-native |
-| Audio (ASR) | OpenAI Whisper API | One-liner, math-aware |
-| UI | Streamlit | Fastest to build + deploy free |
-| Memory | SQLite + JSON | Simple, no infra, survives restarts |
-| Deployment | Streamlit Cloud | Free, instant, reviewer can open link |
+| SymPy | SymPy Calculator | Dual-run symbolic verification of solutions |
+| Audio (ASR) | OpenAI Whisper API (gpt-4o-transcribe) | One-liner, math-aware transcription |
+| UI | Streamlit | Dark-themed dashboard with topic cards, memory stats, agent trace |
+| Memory | SQLite + OpenAI Embeddings | Similar problem retrieval, correction pattern learning, survives restarts |
+| Deployment | Streamlit Cloud | Free, instant, reviewer gets a live link |
 
 ## Features
 
