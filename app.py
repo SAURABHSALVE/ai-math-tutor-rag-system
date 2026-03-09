@@ -59,15 +59,165 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    .main-header { font-size: 2.5rem; font-weight: 700; text-align: center; margin-bottom: .5rem; }
-    .sub-header  { text-align: center; color: #666; margin-bottom: 2rem; }
-    .agent-step  { padding: 8px 12px; margin: 4px 0; border-radius: 5px; border-left: 4px solid; }
-    .agent-completed { border-left-color: #28a745; background-color: #d4edda; }
-    .confidence-high   { color: #28a745; font-weight: bold; }
-    .confidence-medium { color: #ffc107; font-weight: bold; }
-    .confidence-low    { color: #dc3545; font-weight: bold; }
-    .source-chip { display: inline-block; background: #e9ecef; border-radius: 15px;
-                   padding: 4px 12px; margin: 2px; font-size: .85rem; }
+    /* ── Global ── */
+    .block-container { padding-top: 1.5rem; max-width: 1120px; }
+
+    /* ── Header ── */
+    .app-header {
+        text-align: center; padding: 1.5rem 0 0.6rem;
+    }
+    .app-header h1 {
+        font-size: 2.5rem; font-weight: 900; margin: 0; letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .app-header .tagline {
+        opacity: 0.6; font-size: 0.82rem; margin: 0.3rem 0 0;
+        letter-spacing: 0.5px;
+    }
+
+    /* ── Answer highlight ── */
+    .answer-box {
+        background: rgba(16, 185, 129, 0.12);
+        border: 2px solid #10b981; border-radius: 16px;
+        padding: 1.5rem 1rem; text-align: center; margin: 0.8rem 0 1.2rem;
+        box-shadow: 0 4px 24px rgba(16, 185, 129, 0.12);
+    }
+    .answer-box .answer-label {
+        font-size: 0.7rem; font-weight: 700; color: #10b981;
+        text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;
+    }
+    .answer-box .answer-text {
+        font-size: 1.8rem; font-weight: 800;
+        font-family: 'Georgia', 'Times New Roman', serif;
+    }
+
+    /* ── Agent trace ── */
+    .trace-step {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 8px 12px; margin: 4px 0; border-radius: 10px;
+        background: rgba(34, 197, 94, 0.08);
+        border-left: 3px solid #22c55e;
+        font-size: 0.83rem; transition: transform 0.15s;
+    }
+    .trace-step:hover { transform: translateX(3px); }
+    .trace-step.pending {
+        background: rgba(234, 179, 8, 0.1);
+        border-left-color: #eab308;
+    }
+
+    /* ── Confidence badge ── */
+    .conf-badge {
+        display: inline-block; padding: 4px 14px; border-radius: 20px;
+        font-size: 0.78rem; font-weight: 600; letter-spacing: 0.3px;
+    }
+    .conf-high   { background: rgba(16, 185, 129, 0.18); color: #34d399; }
+    .conf-medium { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+    .conf-low    { background: rgba(239, 68, 68, 0.18);  color: #f87171; }
+
+    /* ── Source chips ── */
+    .source-chip {
+        display: inline-block; border-radius: 20px;
+        padding: 4px 14px; margin: 3px; font-size: 0.78rem;
+        background: rgba(139, 92, 246, 0.15);
+        color: #a78bfa; font-weight: 600;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    /* ── Verification checks ── */
+    .verif-item {
+        padding: 6px 0; font-size: 0.83rem; line-height: 1.5;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+    }
+    .verif-item:last-child { border-bottom: none; }
+
+    /* ── Info cards for sidebar topics ── */
+    .topic-card {
+        background: rgba(128, 128, 128, 0.08);
+        border: 1px solid rgba(128, 128, 128, 0.15); border-radius: 10px;
+        padding: 10px 12px; margin-bottom: 8px; text-align: center;
+    }
+    .topic-card .topic-icon { font-size: 1.4rem; }
+    .topic-card .topic-name {
+        font-weight: 700; font-size: 0.82rem; margin: 2px 0 0;
+    }
+    .topic-card .topic-desc {
+        font-size: 0.7rem; opacity: 0.55;
+    }
+
+    /* ── Sidebar stat cards ── */
+    .stat-card {
+        background: rgba(139, 92, 246, 0.12);
+        border-radius: 12px; padding: 12px; text-align: center;
+        border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+    .stat-card .stat-num {
+        font-size: 1.6rem; font-weight: 800; color: #a78bfa;
+    }
+    .stat-card .stat-label {
+        font-size: 0.72rem; color: #a78bfa; text-transform: uppercase;
+        letter-spacing: 1px; font-weight: 600; opacity: 0.8;
+    }
+
+    /* ── Learning section cards ── */
+    .learn-card {
+        background: rgba(128, 128, 128, 0.06);
+        border: 1px solid rgba(128, 128, 128, 0.15);
+        border-radius: 12px; padding: 1rem; height: 100%;
+    }
+    .learn-card h4 {
+        font-size: 0.85rem; font-weight: 700; opacity: 0.8;
+        margin: 0 0 0.5rem; padding-bottom: 0.4rem;
+        border-bottom: 2px solid rgba(128, 128, 128, 0.15);
+    }
+    .learn-card ul { color: inherit; }
+    .learn-card.concepts { border-top: 3px solid #818cf8; }
+    .learn-card.tips     { border-top: 3px solid #fbbf24; }
+    .learn-card.mistakes { border-top: 3px solid #f87171; }
+
+    /* ── Input tabs styling ── */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px; background: rgba(128, 128, 128, 0.08);
+        border-radius: 12px; padding: 4px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 10px; padding: 8px 24px; font-weight: 600;
+    }
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background: rgba(139, 92, 246, 0.15);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* ── Sidebar polish ── */
+    section[data-testid="stSidebar"] .stMetric label { font-size: 0.78rem; }
+    section[data-testid="stSidebar"] .stMetric [data-testid="stMetricValue"] {
+        font-size: 1.4rem;
+    }
+
+    /* ── Progress bar color override ── */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #818cf8, #c084fc, #34d399);
+    }
+
+    /* ── Primary button override ── */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #7c3aed, #a855f7);
+        color: #fff; border: none; font-weight: 700; letter-spacing: 0.3px;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+    }
+
+    /* ── Expander styling ── */
+    .streamlit-expanderHeader {
+        font-weight: 600; font-size: 0.88rem;
+    }
+
+    /* ── Hide default streamlit menu & footer ── */
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -88,37 +238,76 @@ for key, default in {
 
 # ── Header ───────────────────────────────────────────────────
 
-st.markdown('<div class="main-header">📐 Math Mentor</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">GPT-4o + LangGraph Agents + LangChain RAG + HITL + Memory</div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="app-header">
+    <h1>📐 Math Mentor</h1>
+    <p>Mistral OCR + SymPy Solver + GPT-4o + LangGraph Agents + RAG + Memory</p>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ── Sidebar ──────────────────────────────────────────────────
 
 with st.sidebar:
-    st.header("Settings")
+    st.markdown("### Settings")
 
-    api_key = st.text_input("OpenAI API Key", type="password", value=config.OPENAI_API_KEY)
+    api_key = st.text_input("OpenAI API Key", type="password", value=config.OPENAI_API_KEY,
+                            help="Required for solving problems and GPT-4o Vision fallback")
     if api_key:
         config.OPENAI_API_KEY = api_key
         os.environ["OPENAI_API_KEY"] = api_key
 
     st.divider()
-    st.header("Supported Topics")
-    st.markdown("""
-    - **Algebra** (equations, identities, sequences)
-    - **Probability** (counting, distributions, Bayes)
-    - **Calculus** (limits, derivatives, optimization)
-    - **Linear Algebra** (matrices, determinants, vectors)
-    """)
+
+    st.markdown("### Supported Topics")
+    topic_cols = st.columns(2)
+    with topic_cols[0]:
+        st.markdown(
+            '<div class="topic-card"><div class="topic-icon">📊</div>'
+            '<div class="topic-name">Algebra</div>'
+            '<div class="topic-desc">Equations, identities</div></div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="topic-card"><div class="topic-icon">📈</div>'
+            '<div class="topic-name">Calculus</div>'
+            '<div class="topic-desc">Limits, derivatives</div></div>',
+            unsafe_allow_html=True,
+        )
+    with topic_cols[1]:
+        st.markdown(
+            '<div class="topic-card"><div class="topic-icon">🎲</div>'
+            '<div class="topic-name">Probability</div>'
+            '<div class="topic-desc">Bayes, distributions</div></div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="topic-card"><div class="topic-icon">🔢</div>'
+            '<div class="topic-name">Linear Algebra</div>'
+            '<div class="topic-desc">Matrices, determinants</div></div>',
+            unsafe_allow_html=True,
+        )
 
     st.divider()
-    st.header("Memory Store")
-    memories = get_all_memories()
-    st.metric("Problems Solved", len(memories))
-    correct_count = sum(1 for m in memories if m.get("user_feedback") == "correct")
-    st.metric("Confirmed Correct", correct_count)
 
-    if st.button("Clear Memory"):
+    st.markdown("### Memory")
+    memories = get_all_memories()
+    correct_count = sum(1 for m in memories if m.get("user_feedback") == "correct")
+    mem_cols = st.columns(2)
+    with mem_cols[0]:
+        st.markdown(
+            f'<div class="stat-card"><div class="stat-num">{len(memories)}</div>'
+            f'<div class="stat-label">Solved</div></div>',
+            unsafe_allow_html=True,
+        )
+    with mem_cols[1]:
+        st.markdown(
+            f'<div class="stat-card"><div class="stat-num">{correct_count}</div>'
+            f'<div class="stat-label">Correct</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    if st.button("Clear Memory", use_container_width=True, type="secondary"):
         from memory_layer import clear_memory
         clear_memory()
         st.success("Memory cleared!")
@@ -127,98 +316,100 @@ with st.sidebar:
 
 # ── Input Section ────────────────────────────────────────────
 
-st.header("Input Your Math Problem")
-
-input_mode = st.radio("Select input mode:", ["Text", "Image", "Audio"], horizontal=True)
+st.markdown("---")
 
 raw_text = ""
 input_type = "text"
 
-if input_mode == "Text":
-    input_type = "text"
-    raw_text = st.text_area(
-        "Type your math problem:",
-        height=120,
+tab_text, tab_image, tab_audio = st.tabs(["Type", "Image", "Audio"])
+
+# ── Text Tab ──
+with tab_text:
+    input_type_text = "text"
+    raw_text_input = st.text_area(
+        "Enter your math problem:",
+        height=100,
         placeholder="e.g., Find the roots of x^2 - 5x + 6 = 0",
+        label_visibility="collapsed",
     )
-    st.session_state.extracted_text = raw_text
-    st.session_state.extraction_confidence = 1.0
+    if raw_text_input:
+        raw_text = raw_text_input
+        input_type = "text"
+        st.session_state.extracted_text = raw_text
+        st.session_state.extraction_confidence = 1.0
 
-elif input_mode == "Image":
-    input_type = "image"
+# ── Image Tab ──
+with tab_image:
+    img_cols = st.columns([3, 1])
+    with img_cols[0]:
+        uploaded_image = st.file_uploader(
+            "Upload a photo/screenshot of the math problem",
+            type=["jpg", "jpeg", "png"],
+            label_visibility="collapsed",
+        )
+    with img_cols[1]:
+        st.caption("")  # spacer
+        use_sample = st.button("Use sample image", use_container_width=True)
 
-    # Sample image for quick testing
-    if st.button("Use Sample Math Image (for testing)"):
+    if use_sample:
         sample_path = create_sample_math_image(config.UPLOADS_DIR)
         st.session_state["_sample_image_path"] = sample_path
         st.session_state.extracted_text = ""
 
-    uploaded_image = st.file_uploader(
-        "Upload a photo/screenshot of the math problem", type=["jpg", "jpeg", "png"]
-    )
-
-    # Use sample image if no file uploaded
-    if not uploaded_image and st.session_state.get("_sample_image_path"):
-        image_path = st.session_state["_sample_image_path"]
-        st.image(image_path, caption="Sample Math Image", use_container_width=True)
-        if st.button("Extract Text from Sample") or st.session_state.extracted_text:
-            if not st.session_state.extracted_text:
-                with st.spinner("Running OCR pipeline (Mistral → EasyOCR → GPT-4o)..."):
-                    extracted, confidence = extract_text_from_image(image_path)
-                    st.session_state.extracted_text = extracted
-                    st.session_state.extraction_confidence = confidence
-            conf = st.session_state.extraction_confidence
-            if conf >= 0.8:
-                st.markdown(f'<span class="confidence-high">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
-            elif conf >= 0.5:
-                st.markdown(f'<span class="confidence-medium">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<span class="confidence-low">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
-                st.warning("Low confidence! Please review and edit the extracted text.")
-            raw_text = st.text_area("Edit extracted text if needed:", value=st.session_state.extracted_text, height=100)
-            st.session_state.extracted_text = raw_text
-
+    # Determine which image to use
+    _image_path = None
+    _image_display = None
     if uploaded_image:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.image(uploaded_image, caption="Uploaded Image", use_container_width=True)
+        _image_path = save_uploaded_file(uploaded_image, config.UPLOADS_DIR)
+        _image_display = uploaded_image
+    elif st.session_state.get("_sample_image_path"):
+        _image_path = st.session_state["_sample_image_path"]
+        _image_display = _image_path
 
-        image_path = save_uploaded_file(uploaded_image, config.UPLOADS_DIR)
+    if _image_path:
+        col_img, col_ocr = st.columns([1, 1])
+        with col_img:
+            st.image(_image_display, use_container_width=True)
 
-        if st.button("Extract Text (OCR)") or st.session_state.extracted_text:
-            if not st.session_state.extracted_text:
-                with st.spinner("Running OCR pipeline (Mistral → EasyOCR → GPT-4o)..."):
-                    extracted, confidence = extract_text_from_image(image_path)
-                    st.session_state.extracted_text = extracted
-                    st.session_state.extraction_confidence = confidence
+        with col_ocr:
+            extract_btn = st.button("Extract Text", type="primary", use_container_width=True)
 
-            with col2:
-                st.subheader("Extracted Text")
+            if extract_btn or st.session_state.extracted_text:
+                if not st.session_state.extracted_text or extract_btn:
+                    with st.spinner("Running OCR pipeline (Mistral → EasyOCR → GPT-4o)..."):
+                        extracted, confidence = extract_text_from_image(_image_path)
+                        st.session_state.extracted_text = extracted
+                        st.session_state.extraction_confidence = confidence
+
                 conf = st.session_state.extraction_confidence
                 if conf >= 0.8:
-                    st.markdown(f'<span class="confidence-high">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
+                    conf_class = "conf-high"
                 elif conf >= 0.5:
-                    st.markdown(f'<span class="confidence-medium">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
+                    conf_class = "conf-medium"
                 else:
-                    st.markdown(f'<span class="confidence-low">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
-                    st.warning("Low confidence! Please review and edit the extracted text.")
+                    conf_class = "conf-low"
+                st.markdown(
+                    f'<span class="conf-badge {conf_class}">OCR Confidence: {conf:.0%}</span>',
+                    unsafe_allow_html=True,
+                )
+                if conf < 0.5:
+                    st.warning("Low confidence — please review the text below.")
 
                 raw_text = st.text_area(
-                    "Edit extracted text if needed:",
+                    "Extracted text (edit if needed):",
                     value=st.session_state.extracted_text,
-                    height=100,
+                    height=80,
                 )
                 st.session_state.extracted_text = raw_text
+                input_type = "image"
 
-elif input_mode == "Audio":
-    input_type = "audio"
-
-    # ── Real-time microphone recording ──
+# ── Audio Tab ──
+with tab_audio:
+    # Microphone recording
     try:
         from audio_recorder_streamlit import audio_recorder
 
-        st.markdown("**Record directly from your microphone:**")
-        st.caption("Click the mic icon to start recording, click again to stop.")
+        st.caption("Click the mic to record, click again to stop.")
         audio_bytes = audio_recorder(
             text="",
             recording_color="#e74c3c",
@@ -240,58 +431,65 @@ elif input_mode == "Audio":
             st.session_state.extraction_confidence = 1.0
 
         if st.session_state.get("_mic_audio_path") and audio_bytes:
-            with st.spinner("Transcribing with gpt-4o-transcribe..."):
+            with st.spinner("Transcribing..."):
                 transcript, confidence = transcribe_audio(st.session_state["_mic_audio_path"])
                 st.session_state.extracted_text = transcript
                 st.session_state.extraction_confidence = confidence
 
             conf = st.session_state.extraction_confidence
-            st.subheader("Transcript")
-            if conf >= 0.7:
-                st.markdown(f'<span class="confidence-high">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<span class="confidence-medium">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
+            conf_class = "conf-high" if conf >= 0.7 else "conf-medium"
+            st.markdown(
+                f'<span class="conf-badge {conf_class}">Transcription Confidence: {conf:.0%}</span>',
+                unsafe_allow_html=True,
+            )
             raw_text = st.text_area(
-                "Edit transcript if needed:",
+                "Transcript (edit if needed):",
                 value=st.session_state.extracted_text,
-                height=100,
+                height=80,
                 key="mic_transcript_edit",
             )
             st.session_state.extracted_text = raw_text
+            input_type = "audio"
 
         st.divider()
-        st.markdown("**Or upload an audio file:**")
+        st.caption("Or upload an audio file:")
     except ImportError:
-        st.info("Install `audio-recorder-streamlit` for real-time mic recording.")
+        st.info("Install `audio-recorder-streamlit` for mic recording.")
 
-    uploaded_audio = st.file_uploader("Upload an audio file", type=["wav", "mp3", "m4a", "ogg"])
+    uploaded_audio = st.file_uploader("Upload audio file", type=["wav", "mp3", "m4a", "ogg"],
+                                      label_visibility="collapsed")
     if uploaded_audio:
         st.audio(uploaded_audio)
         audio_path = save_uploaded_file(uploaded_audio, config.UPLOADS_DIR)
 
-        if st.button("Transcribe (gpt-4o-transcribe)") or st.session_state.extracted_text:
+        if st.button("Transcribe", type="primary") or st.session_state.extracted_text:
             if not st.session_state.extracted_text:
-                with st.spinner("Transcribing with gpt-4o-transcribe..."):
+                with st.spinner("Transcribing..."):
                     transcript, confidence = transcribe_audio(audio_path)
                     st.session_state.extracted_text = transcript
                     st.session_state.extraction_confidence = confidence
 
             conf = st.session_state.extraction_confidence
-            st.subheader("Transcript")
             if conf >= 0.7:
-                st.markdown(f'<span class="confidence-high">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
+                conf_class = "conf-high"
             elif conf >= 0.4:
-                st.markdown(f'<span class="confidence-medium">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
+                conf_class = "conf-medium"
             else:
-                st.markdown(f'<span class="confidence-low">Confidence: {conf:.0%}</span>', unsafe_allow_html=True)
-                st.warning("Low transcription confidence! Please review and edit.")
+                conf_class = "conf-low"
+            st.markdown(
+                f'<span class="conf-badge {conf_class}">Confidence: {conf:.0%}</span>',
+                unsafe_allow_html=True,
+            )
+            if conf < 0.4:
+                st.warning("Low confidence — please review.")
 
             raw_text = st.text_area(
-                "Edit transcript if needed:",
+                "Transcript (edit if needed):",
                 value=st.session_state.extracted_text,
-                height=100,
+                height=80,
             )
             st.session_state.extracted_text = raw_text
+            input_type = "audio"
 
 
 # ── Solve ────────────────────────────────────────────────────
@@ -299,15 +497,21 @@ elif input_mode == "Audio":
 final_text = raw_text or st.session_state.extracted_text
 
 if final_text:
+    # Similar problems hint
     similar = retrieve_similar(final_text)
     if similar:
-        with st.expander(f"Similar problems from memory ({len(similar)} found)"):
+        with st.expander(f"Similar problems from memory ({len(similar)} found)", expanded=False):
             for sp in similar:
-                st.markdown(f"**Q:** {sp.get('parsed_question', 'N/A')[:100]}...")
-                st.markdown(f"**A:** {sp.get('solution', 'N/A')[:100]}...")
-                st.markdown(f"**Feedback:** {sp.get('user_feedback', 'none')}")
+                st.markdown(f"**Q:** {sp.get('parsed_question', 'N/A')[:120]}")
+                st.markdown(f"**A:** {sp.get('solution', 'N/A')[:120]}")
+                fb = sp.get('user_feedback', 'none')
+                if fb == "correct":
+                    st.markdown("Feedback: ✅ Correct")
+                elif fb == "incorrect":
+                    st.markdown("Feedback: ❌ Incorrect")
                 st.divider()
 
+    st.markdown("")  # spacer
     if st.button("Solve Problem", type="primary", use_container_width=True):
         st.session_state.result = None
         st.session_state.feedback_given = False
@@ -339,11 +543,11 @@ if final_text:
 result = st.session_state.result
 
 if result:
-    st.divider()
+    st.markdown("---")
 
     if result.get("status") == "blocked":
         guardrail = result.get("guardrail", {})
-        st.error(f"Input blocked by Guardrail Agent: {guardrail.get('rejection_reason', 'Not a valid math problem.')}")
+        st.error(f"Input blocked: {guardrail.get('rejection_reason', 'Not a valid math problem.')}")
         st.info("Please enter a valid math problem (algebra, probability, calculus, or linear algebra).")
 
     elif result.get("status") == "needs_clarification":
@@ -352,91 +556,83 @@ if result:
         st.info("Please edit your input above and try again.")
 
     elif result.get("status") in ("solved", "needs_human_review"):
-        col_main, col_side = st.columns([2, 1])
+
+        # ── Answer Box (prominent) ──
+        raw_answer = result['solution'].get('final_answer', 'N/A')
+        formatted_answer = _format_math_answer(raw_answer)
+
+        corrected = result["solution"].get("corrected_problem", "")
+        original = result["parsed"].get("original_text", "")
+
+        st.markdown(
+            f'<div class="answer-box">'
+            f'<div class="answer-label">ANSWER</div>'
+            f'<div class="answer-text">{formatted_answer}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        if corrected and corrected != original:
+            st.caption(f"Interpreted as: *{corrected}*")
+
+        # ── Corrections banner ──
+        corrections = result["parsed"].get("corrections_applied", [])
+        if corrections:
+            with st.expander("Input Corrections Applied"):
+                for c in corrections:
+                    st.markdown(
+                        f"- `{c.get('original', '')}` → `{c.get('corrected', '')}` "
+                        f"*({c.get('reason', '')})*"
+                    )
+
+        # ── Main content: two columns ──
+        col_main, col_side = st.columns([5, 3])
 
         with col_main:
-            # Show corrections if parser fixed OCR/transcription errors
-            corrections = result["parsed"].get("corrections_applied", [])
-            if corrections:
-                with st.expander("Input Corrections Applied", expanded=True):
-                    for c in corrections:
-                        st.markdown(
-                            f"- `{c.get('original', '')}` → `{c.get('corrected', '')}` "
-                            f"*({c.get('reason', '')})*"
-                        )
-
-            st.subheader("Final Answer")
-            raw_answer = result['solution'].get('final_answer', 'N/A')
-            st.success(f"**{_format_math_answer(raw_answer)}**")
-
-            # Show corrected problem if different from original
-            corrected = result["solution"].get("corrected_problem", "")
-            original = result["parsed"].get("original_text", "")
-            if corrected and corrected != original:
-                st.caption(f"**Corrected Problem:** {corrected}")
-
-            st.subheader("Step-by-Step Explanation")
+            # Step-by-step explanation
+            st.markdown("#### Step-by-Step Solution")
             st.markdown(result["explanation"].get("explanation", ""))
 
+            # Key concepts, tips, mistakes — in compact expanders
             key_concepts = result["explanation"].get("key_concepts", [])
-            if key_concepts:
-                st.subheader("Key Concepts")
-                for c in key_concepts:
-                    st.markdown(f"- {c}")
-
             tips = result["explanation"].get("tips", [])
-            if tips:
-                st.subheader("Tips for Similar Problems")
-                for t in tips:
-                    st.markdown(f"- {t}")
-
             common_mistakes = result["explanation"].get("common_mistakes", [])
-            if common_mistakes:
-                st.subheader("Common Mistakes to Avoid")
-                for m in common_mistakes:
-                    st.markdown(f"- {m}")
+
+            if key_concepts or tips or common_mistakes:
+                learn_cols = st.columns(3 if (key_concepts and tips and common_mistakes) else
+                                        2 if sum(bool(x) for x in [key_concepts, tips, common_mistakes]) == 2 else 1)
+                col_idx = 0
+                if key_concepts:
+                    with learn_cols[col_idx]:
+                        items_html = "".join(f"<li>{c}</li>" for c in key_concepts)
+                        st.markdown(
+                            f'<div class="learn-card concepts"><h4>Key Concepts</h4>'
+                            f'<ul style="padding-left:1.2rem;margin:0;font-size:0.85rem;">{items_html}</ul></div>',
+                            unsafe_allow_html=True,
+                        )
+                    col_idx += 1
+                if tips:
+                    with learn_cols[col_idx]:
+                        items_html = "".join(f"<li>{t}</li>" for t in tips)
+                        st.markdown(
+                            f'<div class="learn-card tips"><h4>Tips</h4>'
+                            f'<ul style="padding-left:1.2rem;margin:0;font-size:0.85rem;">{items_html}</ul></div>',
+                            unsafe_allow_html=True,
+                        )
+                    col_idx += 1
+                if common_mistakes:
+                    with learn_cols[col_idx]:
+                        items_html = "".join(f"<li>{m}</li>" for m in common_mistakes)
+                        st.markdown(
+                            f'<div class="learn-card mistakes"><h4>Common Mistakes</h4>'
+                            f'<ul style="padding-left:1.2rem;margin:0;font-size:0.85rem;">{items_html}</ul></div>',
+                            unsafe_allow_html=True,
+                        )
 
         with col_side:
-            # Agent Trace
-            st.subheader("Agent Trace")
-            for step in result.get("trace", []):
-                icon = "✅" if step["status"] == "completed" else "⏳"
-                st.markdown(
-                    f'<div class="agent-step agent-completed">'
-                    f'{icon} <strong>{step["agent"]}</strong><br>'
-                    f'<small>{step.get("output_summary", "")}</small></div>',
-                    unsafe_allow_html=True,
-                )
-
-            # Retrieved Context
-            st.subheader("Retrieved Context")
-            sources = result["solution"].get("retrieved_sources", [])
-            if sources:
-                for src in sources:
-                    st.markdown(
-                        f'<span class="source-chip">{src["source"]} ({src["score"]:.2f})</span>',
-                        unsafe_allow_html=True,
-                    )
-            else:
-                st.info("No sources retrieved.")
-
-            # SymPy Self-Consistency
-            sympy_cons = result["solution"].get("sympy_consistency", {})
-            if sympy_cons:
-                st.subheader("SymPy Solver")
-                if sympy_cons.get("consistent"):
-                    st.success("Self-consistent (2 independent runs agree)")
-                else:
-                    st.warning("Inconsistent — two SymPy runs produced different results")
-                    st.caption(f"Run A: {sympy_cons.get('result_a', 'N/A')[:100]}")
-                    st.caption(f"Run B: {sympy_cons.get('result_b', 'N/A')[:100]}")
-
-            # Confidence
-            st.subheader("Confidence")
+            # ── Confidence + Verification combined ──
             solver_conf = result["solution"].get("confidence", 0)
             verifier_conf = result["verification"].get("confidence", 0)
-
-            # Handle string confidence values
             try:
                 solver_conf = float(solver_conf)
             except (ValueError, TypeError):
@@ -446,52 +642,43 @@ if result:
             except (ValueError, TypeError):
                 verifier_conf = 0.5
 
-            # Smart confidence: if all verification steps pass, trust the verifier
-            # rather than penalizing with a low solver confidence from SymPy timeouts
             verif_steps_list = result["verification"].get("verification_steps", [])
             all_verif_passed = (
                 verif_steps_list
                 and all(v.get("result") == "pass" for v in verif_steps_list)
             )
             if all_verif_passed and verifier_conf >= 0.9:
-                # Verifier independently confirmed — weight it heavily
                 avg_conf = verifier_conf * 0.8 + solver_conf * 0.2
             else:
                 avg_conf = (solver_conf + verifier_conf) / 2
             avg_conf = min(avg_conf, 1.0)
-            st.progress(avg_conf)
 
-            if avg_conf >= 0.8:
-                st.markdown(f'<span class="confidence-high">Overall: {avg_conf:.0%}</span>', unsafe_allow_html=True)
-            elif avg_conf >= 0.5:
-                st.markdown(f'<span class="confidence-medium">Overall: {avg_conf:.0%}</span>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<span class="confidence-low">Overall: {avg_conf:.0%}</span>', unsafe_allow_html=True)
-
-            # Verification
-            st.subheader("Verification")
+            # Verification status
             verification = result["verification"]
-            if verification.get("correct", verification.get("is_correct")):
-                st.success("Verified as correct")
+            is_correct = verification.get("correct", verification.get("is_correct"))
+
+            if is_correct:
+                st.success(f"Verified Correct — {avg_conf:.0%} confidence")
             else:
                 error_type = verification.get("error_type", "")
-                st.error(f"Solution incorrect — Error: {error_type or 'unknown'}")
-
-                # Show corrected solution if verifier provided one
+                st.error(f"Incorrect — {error_type or 'check below'}")
                 correct_answer = verification.get("correct_answer", "")
-                correct_solution = verification.get("correct_solution", "")
                 if correct_answer:
-                    st.info(f"**Corrected Answer:** {correct_answer}")
-                if correct_solution:
-                    with st.expander("Corrected Solution (from Verifier)", expanded=True):
-                        st.markdown(correct_solution)
+                    st.info(f"Corrected: **{_format_math_answer(correct_answer)}**")
 
-            # Show detailed verification steps
+            st.progress(avg_conf)
+
+            # Verification steps
             verif_steps = verification.get("verification_steps", [])
             if verif_steps:
-                for v in verif_steps:
-                    icon = "✅" if v.get("result") == "pass" else "❌"
-                    st.markdown(f"{icon} **{v.get('check', '')}**: {v.get('detail', '')}")
+                with st.expander("Verification Details", expanded=False):
+                    for v in verif_steps:
+                        icon = "✅" if v.get("result") == "pass" else "❌"
+                        st.markdown(
+                            f'<div class="verif-item">{icon} <strong>{v.get("check", "")}</strong>: '
+                            f'{v.get("detail", "")}</div>',
+                            unsafe_allow_html=True,
+                        )
 
             for issue in verification.get("issues", []):
                 st.warning(issue)
@@ -499,55 +686,86 @@ if result:
                 st.warning(f"Human review recommended: {verification.get('review_reason', '')}")
                 st.session_state.hitl_active = True
 
-            # Difficulty
-            st.subheader("Difficulty")
+            # ── SymPy Self-Consistency ──
+            sympy_cons = result["solution"].get("sympy_consistency", {})
+            if sympy_cons:
+                if sympy_cons.get("consistent"):
+                    st.markdown("**SymPy:** ✅ Self-consistent (2 runs agree)")
+                else:
+                    st.markdown("**SymPy:** ⚠️ Inconsistent")
+                    st.caption(f"Run A: {sympy_cons.get('result_a', 'N/A')[:80]}")
+                    st.caption(f"Run B: {sympy_cons.get('result_b', 'N/A')[:80]}")
+
+            # ── Difficulty ──
             diff = result["explanation"].get("difficulty_rating", "Medium")
             diff_icons = {"Easy": "🟢", "Medium": "🟡", "Hard": "🔴"}
-            st.markdown(f"{diff_icons.get(diff, '🟡')} {diff}")
+            st.markdown(f"**Difficulty:** {diff_icons.get(diff, '🟡')} {diff}")
 
-        # Expandable details
-        with st.expander("Parsed Problem Details"):
-            st.json(result["parsed"])
-        with st.expander("Solution Details (Raw)"):
-            st.json(result["solution"])
-        with st.expander("Verification Details"):
-            st.json(result["verification"])
-        with st.expander("Routing Strategy"):
-            st.json(result["route"])
+            # ── Agent Trace ──
+            with st.expander("Agent Trace", expanded=False):
+                for step in result.get("trace", []):
+                    icon = "✅" if step["status"] == "completed" else "⏳"
+                    status_class = "" if step["status"] == "completed" else " pending"
+                    st.markdown(
+                        f'<div class="trace-step{status_class}">'
+                        f'{icon} <strong>{step["agent"]}</strong> — '
+                        f'{step.get("output_summary", "")}</div>',
+                        unsafe_allow_html=True,
+                    )
 
-        # ── Feedback (HITL) ──────────────────────────────────
-        st.divider()
-        st.subheader("Feedback")
+            # ── Retrieved Sources ──
+            sources = result["solution"].get("retrieved_sources", [])
+            if sources:
+                with st.expander("Knowledge Sources", expanded=False):
+                    for src in sources:
+                        st.markdown(
+                            f'<span class="source-chip">{src["source"]} ({src["score"]:.2f})</span>',
+                            unsafe_allow_html=True,
+                        )
+
+        # ── Raw details (collapsed) ──
+        with st.expander("Raw Details (Parsed, Solution, Verification, Routing)"):
+            detail_tabs = st.tabs(["Parsed", "Solution", "Verification", "Routing"])
+            with detail_tabs[0]:
+                st.json(result["parsed"])
+            with detail_tabs[1]:
+                st.json(result["solution"])
+            with detail_tabs[2]:
+                st.json(result["verification"])
+            with detail_tabs[3]:
+                st.json(result["route"])
+
+        # ── Feedback (HITL) ──
+        st.markdown("---")
+        st.markdown("**Was this answer helpful?**")
 
         if not st.session_state.feedback_given:
-            fc = st.columns([1, 1, 3])
+            fc = st.columns([1, 1, 4])
             with fc[0]:
                 if st.button("✅ Correct", use_container_width=True):
                     if st.session_state.current_problem_id:
                         update_feedback(st.session_state.current_problem_id, "correct")
                     st.session_state.feedback_given = True
-                    st.success("Thanks! Feedback recorded.")
                     st.rerun()
             with fc[1]:
-                if st.button("❌ Incorrect", use_container_width=True):
+                if st.button("❌ Wrong", use_container_width=True):
                     st.session_state.hitl_active = True
 
             if st.session_state.hitl_active:
-                correction = st.text_area("What was wrong? Provide the correct answer/approach:")
-                if st.button("Submit Correction"):
+                correction = st.text_area("What was wrong? Provide the correct answer:",
+                                          placeholder="e.g., The answer should be x = 3, not x = 2")
+                if st.button("Submit Correction", type="primary"):
                     if st.session_state.current_problem_id and correction:
                         update_feedback(st.session_state.current_problem_id, "incorrect", correction)
                         st.session_state.feedback_given = True
                         st.success("Correction recorded! The system will learn from this.")
                         st.rerun()
         else:
-            st.info("Feedback already recorded for this problem.")
+            st.success("Thank you for your feedback!")
 
-
-# ── Reset ────────────────────────────────────────────────────
-
-if st.session_state.result:
-    if st.button("New Problem"):
+    # ── New Problem button ──
+    st.markdown("")
+    if st.button("Start New Problem", use_container_width=True):
         for key in ("result", "extracted_text", "extraction_confidence",
                      "current_problem_id", "hitl_active", "feedback_given"):
             st.session_state[key] = {"result": None, "extracted_text": "",
@@ -558,9 +776,8 @@ if st.session_state.result:
 
 # ── Footer ───────────────────────────────────────────────────
 
-st.divider()
 st.markdown(
-    '<div style="text-align:center;color:#888;font-size:.85rem;">'
+    '<div style="text-align:center;color:#888;font-size:.75rem;padding:2rem 0 1rem;">'
     'Math Mentor v3.1 | Mistral OCR + SymPy Solver + GPT-4o + LangGraph + RAG + HITL'
     '</div>',
     unsafe_allow_html=True,
