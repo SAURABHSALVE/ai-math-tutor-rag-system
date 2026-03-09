@@ -60,35 +60,40 @@ st.set_page_config(
 st.markdown("""
 <style>
     /* ── Global ── */
-    .block-container { padding-top: 1.5rem; max-width: 1120px; }
+    .block-container { padding-top: 1rem; max-width: 1120px; }
 
     /* ── Header ── */
     .app-header {
-        text-align: center; padding: 1.5rem 0 0.6rem;
+        text-align: center; padding: 1.2rem 0 0.4rem;
     }
     .app-header h1 {
-        font-size: 2.5rem; font-weight: 900; margin: 0; letter-spacing: -0.5px;
+        font-size: 2.6rem; font-weight: 900; margin: 0; letter-spacing: -1px;
         background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
     .app-header .tagline {
-        opacity: 0.6; font-size: 0.82rem; margin: 0.3rem 0 0;
-        letter-spacing: 0.5px;
+        opacity: 0.5; font-size: 0.78rem; margin: 0.25rem 0 0;
+        letter-spacing: 0.6px; font-weight: 500;
     }
 
     /* ── Answer highlight ── */
     .answer-box {
-        background: rgba(16, 185, 129, 0.12);
-        border: 2px solid #10b981; border-radius: 16px;
-        padding: 1.5rem 1rem; text-align: center; margin: 0.8rem 0 1.2rem;
-        box-shadow: 0 4px 24px rgba(16, 185, 129, 0.12);
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(52, 211, 153, 0.06));
+        border: 2px solid #10b981; border-radius: 18px;
+        padding: 1.6rem 1.2rem; text-align: center; margin: 0.8rem 0 1.2rem;
+        box-shadow: 0 6px 32px rgba(16, 185, 129, 0.10);
+        position: relative; overflow: hidden;
+    }
+    .answer-box::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7);
     }
     .answer-box .answer-label {
-        font-size: 0.7rem; font-weight: 700; color: #10b981;
-        text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;
+        font-size: 0.68rem; font-weight: 700; color: #10b981;
+        text-transform: uppercase; letter-spacing: 2.5px; margin-bottom: 8px;
     }
     .answer-box .answer-text {
-        font-size: 1.8rem; font-weight: 800;
+        font-size: 2rem; font-weight: 800;
         font-family: 'Georgia', 'Times New Roman', serif;
     }
 
@@ -131,32 +136,49 @@ st.markdown("""
     }
     .verif-item:last-child { border-bottom: none; }
 
-    /* ── Info cards for sidebar topics ── */
-    .topic-card {
-        background: rgba(128, 128, 128, 0.08);
-        border: 1px solid rgba(128, 128, 128, 0.15); border-radius: 10px;
-        padding: 10px 12px; margin-bottom: 8px; text-align: center;
+    /* ── Sidebar topic grid ── */
+    .topic-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        margin-bottom: 4px;
     }
-    .topic-card .topic-icon { font-size: 1.4rem; }
+    .topic-card {
+        background: rgba(128, 128, 128, 0.06);
+        border: 1px solid rgba(128, 128, 128, 0.12); border-radius: 12px;
+        padding: 12px 10px; text-align: center;
+        transition: transform 0.15s, border-color 0.15s;
+    }
+    .topic-card:hover {
+        transform: translateY(-1px);
+        border-color: rgba(139, 92, 246, 0.4);
+    }
+    .topic-card .topic-icon { font-size: 1.3rem; margin-bottom: 2px; }
     .topic-card .topic-name {
-        font-weight: 700; font-size: 0.82rem; margin: 2px 0 0;
+        font-weight: 700; font-size: 0.78rem; margin: 2px 0 0;
     }
     .topic-card .topic-desc {
-        font-size: 0.7rem; opacity: 0.55;
+        font-size: 0.68rem; opacity: 0.5;
     }
 
     /* ── Sidebar stat cards ── */
-    .stat-card {
-        background: rgba(139, 92, 246, 0.12);
-        border-radius: 12px; padding: 12px; text-align: center;
-        border: 1px solid rgba(139, 92, 246, 0.25);
+    .stat-row {
+        display: flex; gap: 8px; margin-bottom: 4px;
     }
+    .stat-card {
+        flex: 1;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.10), rgba(192, 132, 252, 0.06));
+        border-radius: 14px; padding: 14px 10px; text-align: center;
+        border: 1px solid rgba(139, 92, 246, 0.20);
+        transition: transform 0.15s;
+    }
+    .stat-card:hover { transform: translateY(-1px); }
     .stat-card .stat-num {
-        font-size: 1.6rem; font-weight: 800; color: #a78bfa;
+        font-size: 1.7rem; font-weight: 800; color: #a78bfa;
+        line-height: 1.1;
     }
     .stat-card .stat-label {
-        font-size: 0.72rem; color: #a78bfa; text-transform: uppercase;
-        letter-spacing: 1px; font-weight: 600; opacity: 0.8;
+        font-size: 0.68rem; color: #a78bfa; text-transform: uppercase;
+        letter-spacing: 1.2px; font-weight: 600; opacity: 0.75;
+        margin-top: 2px;
     }
 
     /* ── Learning section cards ── */
@@ -177,18 +199,34 @@ st.markdown("""
 
     /* ── Input tabs styling ── */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 4px; background: rgba(128, 128, 128, 0.08);
-        border-radius: 12px; padding: 4px;
+        gap: 4px; background: rgba(128, 128, 128, 0.06);
+        border-radius: 14px; padding: 5px;
     }
     .stTabs [data-baseweb="tab"] {
         border-radius: 10px; padding: 8px 24px; font-weight: 600;
+        font-size: 0.88rem;
     }
     .stTabs [data-baseweb="tab"][aria-selected="true"] {
         background: rgba(139, 92, 246, 0.15);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    /* ── Input section header ── */
+    .input-header {
+        font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 1.5px; opacity: 0.45; margin-bottom: 0.6rem;
+    }
+
+    /* ── Sidebar section labels ── */
+    .sidebar-label {
+        font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 1.5px; opacity: 0.45; margin: 0.8rem 0 0.5rem;
     }
 
     /* ── Sidebar polish ── */
+    section[data-testid="stSidebar"] {
+        background: rgba(0, 0, 0, 0.02);
+    }
     section[data-testid="stSidebar"] .stMetric label { font-size: 0.78rem; }
     section[data-testid="stSidebar"] .stMetric [data-testid="stMetricValue"] {
         font-size: 1.4rem;
@@ -203,16 +241,42 @@ st.markdown("""
     .stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #7c3aed, #a855f7);
         color: #fff; border: none; font-weight: 700; letter-spacing: 0.3px;
+        border-radius: 10px; padding: 0.55rem 1.2rem;
         transition: transform 0.15s, box-shadow 0.15s;
     }
     .stButton > button[kind="primary"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(124, 58, 237, 0.35);
+    }
+
+    /* ── Secondary button override ── */
+    .stButton > button[kind="secondary"] {
+        border-radius: 10px; font-weight: 600;
+        transition: transform 0.15s;
+    }
+    .stButton > button[kind="secondary"]:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
     }
 
     /* ── Expander styling ── */
     .streamlit-expanderHeader {
         font-weight: 600; font-size: 0.88rem;
+    }
+
+    /* ── Feedback section ── */
+    .feedback-section {
+        background: rgba(128, 128, 128, 0.04);
+        border: 1px solid rgba(128, 128, 128, 0.12);
+        border-radius: 14px; padding: 1rem 1.2rem; margin-top: 0.5rem;
+    }
+    .feedback-section .feedback-q {
+        font-size: 0.85rem; font-weight: 600; margin-bottom: 0.6rem;
+    }
+
+    /* ── Footer ── */
+    .app-footer {
+        text-align: center; font-size: 0.72rem; padding: 2rem 0 1rem;
+        opacity: 0.35; letter-spacing: 0.3px;
     }
 
     /* ── Hide default streamlit menu & footer ── */
@@ -240,8 +304,8 @@ for key, default in {
 
 st.markdown("""
 <div class="app-header">
-    <h1>📐 Math Mentor</h1>
-    <p>Mistral OCR + SymPy Solver + GPT-4o + LangGraph Agents + RAG + Memory</p>
+    <h1>Math Mentor</h1>
+    <p class="tagline">Mistral OCR  &bull;  SymPy Solver  &bull;  GPT-4o  &bull;  LangGraph  &bull;  RAG  &bull;  Memory</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -249,79 +313,67 @@ st.markdown("""
 # ── Sidebar ──────────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown("### Settings")
+    st.markdown('<div class="sidebar-label">Topics</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="topic-grid">'
+        '<div class="topic-card"><div class="topic-icon">📊</div>'
+        '<div class="topic-name">Algebra</div>'
+        '<div class="topic-desc">Equations, identities</div></div>'
+        '<div class="topic-card"><div class="topic-icon">📈</div>'
+        '<div class="topic-name">Calculus</div>'
+        '<div class="topic-desc">Limits, derivatives</div></div>'
+        '<div class="topic-card"><div class="topic-icon">🎲</div>'
+        '<div class="topic-name">Probability</div>'
+        '<div class="topic-desc">Bayes, distributions</div></div>'
+        '<div class="topic-card"><div class="topic-icon">🔢</div>'
+        '<div class="topic-name">Linear Algebra</div>'
+        '<div class="topic-desc">Matrices, determinants</div></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
-    api_key = st.text_input("OpenAI API Key", type="password", value=config.OPENAI_API_KEY,
-                            help="Required for solving problems and GPT-4o Vision fallback")
-    if api_key:
-        config.OPENAI_API_KEY = api_key
-        os.environ["OPENAI_API_KEY"] = api_key
-
-    st.divider()
-
-    st.markdown("### Supported Topics")
-    topic_cols = st.columns(2)
-    with topic_cols[0]:
-        st.markdown(
-            '<div class="topic-card"><div class="topic-icon">📊</div>'
-            '<div class="topic-name">Algebra</div>'
-            '<div class="topic-desc">Equations, identities</div></div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="topic-card"><div class="topic-icon">📈</div>'
-            '<div class="topic-name">Calculus</div>'
-            '<div class="topic-desc">Limits, derivatives</div></div>',
-            unsafe_allow_html=True,
-        )
-    with topic_cols[1]:
-        st.markdown(
-            '<div class="topic-card"><div class="topic-icon">🎲</div>'
-            '<div class="topic-name">Probability</div>'
-            '<div class="topic-desc">Bayes, distributions</div></div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="topic-card"><div class="topic-icon">🔢</div>'
-            '<div class="topic-name">Linear Algebra</div>'
-            '<div class="topic-desc">Matrices, determinants</div></div>',
-            unsafe_allow_html=True,
-        )
-
-    st.divider()
-
-    st.markdown("### Memory")
+    st.markdown('<div class="sidebar-label">Memory</div>', unsafe_allow_html=True)
     memories = get_all_memories()
     correct_count = sum(1 for m in memories if m.get("user_feedback") == "correct")
-    mem_cols = st.columns(2)
-    with mem_cols[0]:
-        st.markdown(
-            f'<div class="stat-card"><div class="stat-num">{len(memories)}</div>'
-            f'<div class="stat-label">Solved</div></div>',
-            unsafe_allow_html=True,
-        )
-    with mem_cols[1]:
-        st.markdown(
-            f'<div class="stat-card"><div class="stat-num">{correct_count}</div>'
-            f'<div class="stat-label">Correct</div></div>',
-            unsafe_allow_html=True,
-        )
+    accuracy = f"{correct_count / len(memories):.0%}" if memories else "—"
+    st.markdown(
+        '<div class="stat-row">'
+        f'<div class="stat-card"><div class="stat-num">{len(memories)}</div>'
+        f'<div class="stat-label">Solved</div></div>'
+        f'<div class="stat-card"><div class="stat-num">{correct_count}</div>'
+        f'<div class="stat-label">Correct</div></div>'
+        f'<div class="stat-card"><div class="stat-num">{accuracy}</div>'
+        f'<div class="stat-label">Accuracy</div></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
+    st.markdown("")  # spacer
     if st.button("Clear Memory", use_container_width=True, type="secondary"):
         from memory_layer import clear_memory
         clear_memory()
         st.success("Memory cleared!")
         st.rerun()
 
+    st.markdown('<div class="sidebar-label">Pipeline</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font-size:0.75rem;opacity:0.6;line-height:1.7;">'
+        'Guardrail &rarr; Parser &rarr; Router<br>'
+        '&rarr; SymPy Solver &rarr; Verifier<br>'
+        '&rarr; Explainer'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
 
 # ── Input Section ────────────────────────────────────────────
 
-st.markdown("---")
+st.markdown('<div class="input-header">Enter your problem</div>', unsafe_allow_html=True)
 
 raw_text = ""
 input_type = "text"
 
-tab_text, tab_image, tab_audio = st.tabs(["Type", "Image", "Audio"])
+tab_text, tab_image, tab_audio = st.tabs(["  Type  ", "  Image  ", "  Audio  "])
 
 # ── Text Tab ──
 with tab_text:
@@ -511,8 +563,7 @@ if final_text:
                     st.markdown("Feedback: ❌ Incorrect")
                 st.divider()
 
-    st.markdown("")  # spacer
-    if st.button("Solve Problem", type="primary", use_container_width=True):
+    if st.button("Solve", type="primary", use_container_width=True):
         st.session_state.result = None
         st.session_state.feedback_given = False
         st.session_state.hitl_active = False
@@ -736,19 +787,21 @@ if result:
                 st.json(result["route"])
 
         # ── Feedback (HITL) ──
-        st.markdown("---")
-        st.markdown("**Was this answer helpful?**")
+        st.markdown(
+            '<div class="feedback-section"><div class="feedback-q">Was this answer correct?</div></div>',
+            unsafe_allow_html=True,
+        )
 
         if not st.session_state.feedback_given:
             fc = st.columns([1, 1, 4])
             with fc[0]:
-                if st.button("✅ Correct", use_container_width=True):
+                if st.button("Correct", use_container_width=True, type="primary"):
                     if st.session_state.current_problem_id:
                         update_feedback(st.session_state.current_problem_id, "correct")
                     st.session_state.feedback_given = True
                     st.rerun()
             with fc[1]:
-                if st.button("❌ Wrong", use_container_width=True):
+                if st.button("Wrong", use_container_width=True):
                     st.session_state.hitl_active = True
 
             if st.session_state.hitl_active:
@@ -758,10 +811,10 @@ if result:
                     if st.session_state.current_problem_id and correction:
                         update_feedback(st.session_state.current_problem_id, "incorrect", correction)
                         st.session_state.feedback_given = True
-                        st.success("Correction recorded! The system will learn from this.")
+                        st.success("Correction saved — the system will learn from this.")
                         st.rerun()
         else:
-            st.success("Thank you for your feedback!")
+            st.success("Thanks for the feedback!")
 
     # ── New Problem button ──
     st.markdown("")
@@ -777,8 +830,8 @@ if result:
 # ── Footer ───────────────────────────────────────────────────
 
 st.markdown(
-    '<div style="text-align:center;color:#888;font-size:.75rem;padding:2rem 0 1rem;">'
-    'Math Mentor v3.1 | Mistral OCR + SymPy Solver + GPT-4o + LangGraph + RAG + HITL'
+    '<div class="app-footer">'
+    'Math Mentor v3.2 &mdash; Mistral OCR &bull; SymPy &bull; GPT-4o &bull; LangGraph &bull; RAG &bull; HITL'
     '</div>',
     unsafe_allow_html=True,
 )

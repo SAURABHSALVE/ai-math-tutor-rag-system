@@ -564,7 +564,8 @@ _SYMPY_SAFE_NAMESPACE = {
     "log": sympy.log, "ln": sympy.log, "exp": sympy.exp,
     "Abs": sympy.Abs, "factorial": sympy.factorial,
     "binomial": sympy.binomial, "Piecewise": sympy.Piecewise,
-    "Matrix": sympy.Matrix, "det": lambda m: sympy.Matrix(m).det(),
+    "Matrix": sympy.Matrix,
+    "det": lambda m: sympy.Matrix(m).det() if not isinstance(m, (int, float, sympy.Basic)) else m,
     "eye": sympy.eye, "zeros": sympy.zeros,
     "Eq": sympy.Eq, "Ne": sympy.Ne, "Lt": sympy.Lt, "Le": sympy.Le,
     "Gt": sympy.Gt, "Ge": sympy.Ge,
@@ -688,13 +689,12 @@ _TOPIC_SYMPY_EXAMPLES: dict[str, str] = {
 - Rank: Matrix([[1,2,3],[4,5,6]]).rank()
 - Transpose: Matrix([[1,2],[3,4]]).T
 - JACOBIAN:
-  from sympy import Matrix, symbols
-  x, y = symbols('x y')
   F = Matrix([x**2*y, 5*x + sin(y)])
   F.jacobian([x, y])
 - SYSTEM OF EQUATIONS (linsolve):
   from sympy import linsolve
-  linsolve([2*x + y - 5, x - y - 1], (x, y))""",
+  linsolve([2*x + y - 5, x - y - 1], (x, y))
+IMPORTANT: For determinants, use EITHER Matrix(...).det() OR det(Matrix(...)), NEVER det(Matrix(...)).det() — that will fail!""",
 }
 
 
@@ -722,6 +722,7 @@ RULES:
 - For probability, ALWAYS use Rational(num, den) — never use float division like 3/4.
 - For optimization: compute derivative, solve for critical points, evaluate f(x) at each.
 - For matrices, use Matrix([[...], [...]]) and chain .det(), .inv(), .eigenvals() etc.
+- NEVER call det(Matrix(...)).det() — use EITHER Matrix(...).det() OR det(Matrix(...)), not both.
 
 Return ONLY the Python code, no markdown fences, no explanation.""",
         system=(
@@ -744,9 +745,25 @@ def _sympy_primary_solve(problem_text: str, topic: str) -> dict:
     """Primary solver: LLM generates SymPy code, we execute it.
 
     Returns {"success": bool, "sympy_code": str, "result": str, "error": str}.
+    Includes auto-retry: if the first attempt fails, tries to fix common code issues.
     """
     code = _generate_sympy_code(problem_text, topic)
     exec_result = _execute_sympy_code(code)
+
+    # Auto-retry: fix common LLM code generation mistakes
+    if not exec_result["success"] and exec_result["error"]:
+        fixed_code = code
+        # Fix double .det() call: det(Matrix(...)).det() → Matrix(...).det()
+        fixed_code = re.sub(r'det\((.+?)\)\.det\(\)', r'\1.det()', fixed_code)
+        # Fix double method calls on other matrix operations
+        for method in ("inv", "eigenvals", "eigenvects", "rank"):
+            fixed_code = re.sub(
+                rf'{method}\((.+?)\)\.{method}\(\)', rf'\1.{method}()', fixed_code
+            )
+        if fixed_code != code:
+            exec_result = _execute_sympy_code(fixed_code)
+            code = fixed_code
+
     return {
         "success": exec_result["success"],
         "sympy_code": code,
@@ -1334,7 +1351,11 @@ INSTRUCTIONS:
 - Solve the problem yourself step-by-step using proper mathematical methods.
 - Use formulas from the retrieved context above where applicable. Cite them (e.g., "[algebra.md]").
 - Show ALL work — every algebraic step, substitution, and simplification.
-- Double-check your arithmetic before stating the final answer.
+- CRITICAL: Double-check your arithmetic before stating the final answer. Pay special attention to:
+  * Sign errors when multiplying negative numbers: (-a)(-b) = +ab, (-a)(b) = -ab
+  * The determinant formula is ad - bc (SUBTRACTION), not ad + bc
+  * Verify each intermediate calculation independently before combining
+- After computing the answer, VERIFY it by recomputing from scratch using a different order of operations.
 - Be explicit about the method used (e.g., quadratic formula, integration by parts, Bayes' theorem).
 
 Return JSON:
